@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: light; }
+html { -webkit-text-size-adjust: 100%; }
+body { @apply bg-canvas font-sans text-ink antialiased; font-feature-settings: "ss01", "tnum"; }
+[dir="rtl"], .ar { font-family: "IBM Plex Sans Arabic", "IBM Plex Sans", sans-serif; }
+
+::selection { background: #D3E3F8; }
+
+.nav-link { @apply flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13.5px] font-medium text-white/70 transition hover:bg-white/[0.06] hover:text-white; }
+.nav-link[data-active="true"] { @apply bg-white/[0.1] text-white; box-shadow: inset 2px 0 0 #5B9BE6; }
+
+.grain { background-image: radial-gradient(1200px 400px at 85% -10%, rgba(0,74,163,.55), transparent 60%), radial-gradient(800px 300px at -10% 120%, rgba(91,155,230,.18), transparent 60%); }
+
+input[type="range"] { accent-color: #004AA3; }
+select { background-image: none; }
+
+@media print {
+  aside, header.app-top, .no-print { display: none !important; }
+  main { padding: 0 !important; }
+}
