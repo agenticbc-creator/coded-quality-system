@@ -15,11 +15,11 @@ export default async function OwnerHome() {
   const segs = me.owned_segments;
   const [{ data: cohorts }, { data: comps }, { data: visits }, { data: notes }, { data: steps }, { data: plans }] = await Promise.all([
     supabase.from("cohorts").select("*, program:programs(name, segment_id, program_type), classrooms(id, name, classroom_staff(role, person:people(id, full_name)))").order("start_date", { ascending: false }),
-    supabase.from("composites").select("*, person:people(id, full_name)").eq("period", period),
+    supabase.from("composites").select("*, person:people!composites_person_id_fkey(id, full_name)").eq("period", period),
     supabase.from("visits").select("*, cohort:cohorts(name), classroom:classrooms(name), assignee:people!visits_assignee_id_fkey(full_name), scores:visit_scores(pct, subject_role, subject_person_id)").order("scheduled_for"),
     supabase.from("feedback").select("id, severity, created_at, subject:people!feedback_subject_id_fkey(full_name), red_flag_reason").eq("status", "private"),
-    supabase.from("pipeline_steps").select("*, pipeline:pipelines(id, segment_id, target_role, status, person:people(full_name))").eq("status", "pending").not("opened_at", "is", null).in("step", ["selection_rate", "cleared"]),
-    supabase.from("plans").select("*, person:people(id, full_name)").eq("status", "open"),
+    supabase.from("pipeline_steps").select("*, pipeline:pipelines(id, segment_id, target_role, status, person:people!pipelines_person_id_fkey(full_name))").eq("status", "pending").not("opened_at", "is", null).in("step", ["selection_rate", "cleared"]),
+    supabase.from("plans").select("*, person:people!plans_person_id_fkey(id, full_name)").eq("status", "open"),
   ]);
   const mine = (cohorts ?? []).filter((c: any) => segs.includes(c.program.segment_id));
   const live = mine.filter((c: any) => c.status === "live");

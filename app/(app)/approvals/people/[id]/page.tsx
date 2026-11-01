@@ -18,7 +18,7 @@ export default async function Pipeline({ params }: { params: Promise<{ id: strin
   const me = await getMe();
   const supabase = await db();
   const [{ data: p }, { data: settings }, { data: mocks }, { data: contracts }] = await Promise.all([
-    supabase.from("pipelines").select("*, person:people(*), program:programs(name), steps:pipeline_steps(*, by:people!pipeline_steps_done_by_fkey(full_name))").eq("id", id).maybeSingle(),
+    supabase.from("pipelines").select("*, person:people!pipelines_person_id_fkey(*), program:programs(name), steps:pipeline_steps(*, by:people!pipeline_steps_done_by_fkey(full_name))").eq("id", id).maybeSingle(),
     supabase.from("settings").select("key, value, status").in("key", ["vetting_scorecard", "cctp_mock_rubric", "ta_checklist"]),
     supabase.from("mock_results").select("*, assessor:people!mock_results_assessor_id_fkey(full_name)").eq("pipeline_id", id).order("created_at"),
     supabase.from("erp_contracts").select("*"),

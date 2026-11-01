@@ -21,8 +21,8 @@ export default async function Overview() {
   const period = currentPeriod();
   const [{ data: audit }, { data: comps }, { data: steps }, { data: content }, { data: cohorts }] = await Promise.all([
     supabase.from("audit_log").select("*, actor:people(full_name)").order("at", { ascending: false }).limit(40),
-    supabase.from("composites").select("segment_id, tier, total, provisional, person:people(id, full_name)").eq("period", period),
-    supabase.from("pipeline_steps").select("step, opened_at, pipeline:pipelines(id, status, segment_id, person:people(full_name))").eq("status", "pending").not("opened_at", "is", null),
+    supabase.from("composites").select("segment_id, tier, total, provisional, person:people!composites_person_id_fkey(id, full_name)").eq("period", period),
+    supabase.from("pipeline_steps").select("step, opened_at, pipeline:pipelines(id, status, segment_id, person:people!pipelines_person_id_fkey(full_name))").eq("status", "pending").not("opened_at", "is", null),
     supabase.from("content_items").select("id, title, status").eq("status", "submitted"),
     supabase.from("cohorts").select("id, name, status, program:programs(segment_id)"),
   ]);

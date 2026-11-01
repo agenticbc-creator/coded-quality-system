@@ -12,7 +12,7 @@ export default async function PeopleApprovals() {
   const me = await getMe();
   const supabase = await db();
   const [{ data: pipes }, { data: people }, { data: programs }] = await Promise.all([
-    supabase.from("pipelines").select("*, person:people(id, full_name, erp_supplier_id, erp_contractor_status), program:programs(name), steps:pipeline_steps(*)").order("created_at", { ascending: false }),
+    supabase.from("pipelines").select("*, person:people!pipelines_person_id_fkey(id, full_name, erp_supplier_id, erp_contractor_status), program:programs(name), steps:pipeline_steps(*)").order("created_at", { ascending: false }),
     supabase.from("people").select("id, full_name, erp_supplier_id, approval_status").not("erp_supplier_id", "is", null).order("full_name"),
     supabase.from("programs").select("id, name, segment_id"),
   ]);

@@ -13,7 +13,7 @@ export default async function Scores({ searchParams }: { searchParams: Promise<{
   const supabase = await db();
   const period = (await searchParams).period ?? currentPeriod();
   const [{ data: comps }, { data: periods }, { data: tpl }] = await Promise.all([
-    supabase.from("composites").select("*, person:people(id, full_name)").eq("period", period).order("total", { ascending: false }),
+    supabase.from("composites").select("*, person:people!composites_person_id_fkey(id, full_name)").eq("period", period).order("total", { ascending: false }),
     supabase.from("composites").select("period"),
     supabase.from("scoring_templates").select("*").eq("active", true),
   ]);
