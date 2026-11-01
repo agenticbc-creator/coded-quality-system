@@ -1,9 +1,11 @@
 # CODED Education Quality and Approvals System
 
-Standalone build of the PRD *Education Quality and Approvals System* (25 Oct 2026), Phase 1.
+Standalone build of the PRD *Education Quality and Approvals System* (25 Oct 2026): Phase 1 plus the Phase 2/3 items.
+The full requirement-by-requirement map lives in the app at `/coverage` (`lib/prd.ts`).
 Built to move into CODED Portal v2 later: the database mirrors ERPNext and the CODED App in `erp_*` and `app_*` tables.
 
 **Stack:** Next.js 15 (App Router, server actions) · Supabase (Postgres, Auth, row-level security) · Tailwind · Vercel.
+**Brand:** official CODED logo (`public/brand`), Inter, Navy `#14243F`, Blue `#004AA3`, Light Gray `#D2D2D2` from the CODED Figma library.
 
 ## What is in Phase 1
 
@@ -21,6 +23,21 @@ Built to move into CODED Portal v2 later: the database mirrors ERPNext and the C
 | Live CODED App signals, 24/72 reminders and escalation | `/me`, `/ops`, daily jobs |
 | N1 / R1. Notifications, audit log | `/notifications`, `/admin?tab=audit` |
 | GM observer view, HR view, system owner admin | `/overview`, `/people`, `/admin` |
+
+## Added in Phase 2/3
+
+| PRD | Where |
+|---|---|
+| H1–H7. CCTP: enrol, Trainer Learning Path progress and ranks, book and score the live mock class, recordings | `/cctp` |
+| B7, P4, H6. Level changes and readiness (segment owner + HR or GM), CCTP-at-risk alerts | `/levels` |
+| C5, D7. Master classes (Tier 1 only) and challenge sessions with their own template | `/master-classes` |
+| E7. QAer onboarding per template, team readiness grid | `/onboarding` |
+| G4, G5. Printable quarterly report card with acknowledgement; plan editing | `/report-card`, `/people/[id]` |
+| A6, A7, X1. Staged content review (Outline → Beta) and the creator's pre-check | `/approvals/content/[id]` |
+| R2. Approvals dashboard by stage, age and approver | `/approvals` |
+| D3, X4. Week calendar with ERPNext unavailability and an `.ics` feed | `/calendar`, `/calendar/ics` |
+| P3, B6, WB, X2. Kids/Youth rubric variants, re-approval warning, ERPNext write-back panel, "Suggest" for The One Thing | throughout |
+| Education home, handbook, PRD coverage, ⌘K command palette | `/education`, `/handbook`, `/coverage` |
 
 ## Access model
 
@@ -46,7 +63,7 @@ npm run dev
 ```
 
 Database: apply `supabase/migrations/*.sql` in order, then (for demo data only) `supabase/seed/demo_seed.sql`
-after `select set_config('seed.demo_password', '<password>', false);`.
+after `select set_config('seed.demo_password', '<password>', false);`, then `supabase/seed/phase2_seed.sql`.
 
 **Before real data:** remove `DEMO_PASSWORD` (turns persona sign-in off), delete the demo users, and replace the
 `erp_*` / `app_*` sample tables with the Portal v2 sync.
