@@ -68,14 +68,14 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
         </div>
       </div>
 
-      <div className="grid overflow-hidden rounded-xl border border-line bg-line md:grid-cols-7 md:gap-px">
+      <div className="grid grid-cols-1 overflow-hidden rounded-xl border border-line bg-line md:grid-cols-7 md:gap-px">
         {days.map((d, i) => {
           const k = key(d);
           const isToday = k === key(today);
           const weekend = i >= 5;
           const list = byDay.get(k) ?? [];
           return (
-            <div key={k} className={cx("min-h-[180px] border-b border-line p-2.5 md:border-0", weekend ? "bg-zebra" : "bg-white")}>
+            <div key={k} className={cx("min-h-[120px] min-w-0 border-b border-line p-2.5 md:min-h-[180px] md:border-0", weekend ? "bg-zebra" : "bg-white")}>
               <div className="mb-2 flex items-baseline justify-between">
                 <span className={cx("text-[11px] font-semibold uppercase tracking-wider", weekend ? "text-ink-400" : "text-ink-500")}>{DAYS[i]}</span>
                 <span className={cx("grid h-7 min-w-7 place-items-center px-1 text-[14px] font-bold tabular-nums", isToday ? "bg-navy text-white" : "text-navy")}>{d.getDate()}</span>
