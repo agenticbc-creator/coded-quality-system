@@ -129,7 +129,7 @@ export default async function CohortPage({ params }: { params: Promise<{ id: str
                   <tbody>
                     {weeks.map((w) => (
                       <tr key={w} className="border-t border-line/70 align-top">
-                        <td className="py-2 pr-3 font-mono text-ink-500">W{w}</td>
+                        <td className="py-2 pr-3 tabular-nums text-ink-500">W{w}</td>
                         {classrooms.map((cl: any) => (
                           <td key={cl.id} className="py-2 pr-3">
                             <div className="flex flex-col gap-1">

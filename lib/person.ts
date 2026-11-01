@@ -18,7 +18,11 @@ export async function loadPerson(personId: string) {
     supabase.from("jd_ticks").select("*, cohort:cohorts(name)").eq("person_id", personId),
     supabase.from("accountability_entries").select("*").eq("person_id", personId).order("created_at", { ascending: false }),
   ]);
-  const { data: agg360 } = await supabase.rpc("review_aggregate", { p_person: personId, p_period: period });
+  const [{ data: agg360 }, { data: writeback }, { data: reportCards }] = await Promise.all([
+    supabase.rpc("review_aggregate", { p_person: personId, p_period: period }),
+    supabase.rpc("erp_writeback", { p_person: personId }),
+    supabase.from("report_cards").select("*").eq("person_id", personId),
+  ]);
 
   type Staff = { role: string; is_lead: boolean; classroom: any };
   const classrooms = ((staff.data ?? []) as Staff[]).filter((s) => s.classroom);
@@ -41,6 +45,8 @@ export async function loadPerson(personId: string) {
     jdTicks: (jdTicks.data ?? []) as any[],
     acc: (acc.data ?? []) as any[],
     agg360: agg360 as any,
+    writeback: writeback as any,
+    reportCards: (reportCards ?? []) as any[],
     signals,
   };
 }

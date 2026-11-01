@@ -56,7 +56,9 @@ export async function contentCreate(_: ActionResult, f: FormData): Promise<Actio
 }
 export async function contentSubmit(_: ActionResult, f: FormData) {
   const id = s(f, "content")!;
-  return call("content_submit", { p_content: id, p_summary: s(f, "summary"), p_link: s(f, "link") }, [`/approvals/content/${id}`, "/approvals/content"],
+  const checks = ["seventy_thirty", "arc", "productive_struggle", "real_life", "time_boxed", "outcomes_mapped"];
+  const precheck = Object.fromEntries(checks.filter((c) => f.has(`pc_${c}`) || f.has("precheck_on")).map((c) => [c, f.get(`pc_${c}`) === "on"]));
+  return call("content_submit", { p_content: id, p_summary: s(f, "summary"), p_link: s(f, "link"), p_precheck: Object.keys(precheck).length ? precheck : null }, [`/approvals/content/${id}`, "/approvals/content"],
     "Submitted for approval. The approver has been notified.");
 }
 export async function contentDecide(_: ActionResult, f: FormData) {
@@ -225,11 +227,11 @@ export async function compositesCompute(_: ActionResult, f: FormData) {
   return { ok: true, message: `Recomputed ${d.people} people in ${(d.ms / 1000).toFixed(2)} s.` };
 }
 export async function runDailyJobs(_: ActionResult, _f: FormData) {
-  const r = await call("run_daily_jobs", {}, ["/admin", "/ops"], "");
+  const r = await call("run_daily_jobs_ext", {}, ["/admin", "/ops", "/levels"], "");
   if (!r.ok) return r;
   const d = r.data as Record<string, number>;
-  const total = Object.values(d).reduce((a, b) => a + b, 0);
-  return { ok: true, message: `Daily jobs ran: ${d.attendance_reminders} attendance and ${d.grading_reminders} grading reminders, ${d.escalations} escalations, ${d.approval_reminders} approval reminders, ${d.visit_reminders} visit reminders, ${d.pulse_triggers} pulse triggers (${total} actions).` };
+  const total = Object.values(d).reduce((a, b) => a + (Number(b) || 0), 0);
+  return { ok: true, message: `Daily jobs ran: ${d.attendance_reminders} attendance and ${d.grading_reminders} grading reminders, ${d.escalations} escalations, ${d.approval_reminders} approval reminders, ${d.visit_reminders} visit reminders, ${d.pulse_triggers} pulse triggers, ${d.level_suggestions ?? 0} level checks (${total} actions).` };
 }
 export async function remind(_: ActionResult, f: FormData) {
   return call("remind_person", { p_person: s(f, "person"), p_title: s(f, "title"), p_body: s(f, "body"), p_link: s(f, "link") ?? "/me" }, ["/ops"], "Reminder sent.");
@@ -261,4 +263,74 @@ export async function qaTemplateSave(_: ActionResult, f: FormData) {
   return call("qa_template_save", { p_key: s(f, "key"), p_name: s(f, "name"), p_kind: s(f, "kind"), p_focus: s(f, "focus"),
     p_subjects: (s(f, "subjects") ?? "").split(",").map((x) => x.trim()).filter(Boolean), p_rubric: rubric, p_special: s(f, "special") === "on" },
     ["/admin"], "Template saved as a new version.");
+}
+
+
+// ── A6/A7. Staged review ─────────────────────────────────
+export async function contentEnableStages(_: ActionResult, f: FormData) {
+  const id = s(f, "content")!;
+  return call("content_enable_stages", { p_content: id }, [`/approvals/content/${id}`], "Staged review turned on: Outline → Beta.");
+}
+export async function contentStageDecide(_: ActionResult, f: FormData) {
+  const id = s(f, "content")!;
+  return call("content_stage_decide", { p_stage: s(f, "stage"), p_decision: s(f, "decision"), p_comments: s(f, "comments") }, [`/approvals/content/${id}`, "/approvals"], "Stage decision recorded.");
+}
+
+// ── H. CCTP ───────────────────────────────────────────────
+export async function cctpEnrol(_: ActionResult, f: FormData) {
+  return call("cctp_enrol", { p_person: s(f, "person"), p_source: s(f, "source") }, ["/cctp"], "Enrolled. They have been welcomed to the path.");
+}
+export async function cctpProgress(_: ActionResult, f: FormData) {
+  const r = await call("cctp_progress", { p_person: s(f, "person"), p_lessons: n(f, "lessons") }, ["/cctp"], "");
+  return r.ok ? { ...r, message: `Progress saved · rank: ${r.data}` } : r;
+}
+export async function cctpBook(_: ActionResult, f: FormData) {
+  const when = s(f, "when");
+  return call("cctp_book", { p_when: when ? new Date(when + "+03:00").toISOString() : null, p_person: s(f, "person") }, ["/cctp", "/calendar"], "Mock class booked. The Education Principal has been notified.");
+}
+export async function cctpRecord(_: ActionResult, f: FormData) {
+  const keys = ["arc", "struggle", "mentorship", "collaborative", "supportive", "real_life"];
+  const scores = Object.fromEntries(keys.map((k) => [k, Number(f.get(`s_${k}`) ?? 0)]));
+  const r = await call("cctp_record", { p_booking: s(f, "booking"), p_scores: scores, p_critical: f.getAll("critical").map(String), p_feedback: s(f, "feedback"), p_recording: s(f, "recording") }, ["/cctp"], "");
+  if (!r.ok) return r;
+  const d = r.data as { total: number; result: string };
+  return { ...r, message: d.result === "not_yet" ? `Scored ${d.total}/100 · Not Yet. A retake can be booked.` : `Scored ${d.total}/100 · certified ${d.result}.` };
+}
+
+// ── G4/G5. Report card and plans ──────────────────────────
+export async function reportCardAck(_: ActionResult, f: FormData) {
+  return call("report_card_ack", { p_period: s(f, "period"), p_comment: s(f, "comment") }, ["/report-card", "/me"], "Report card acknowledged.");
+}
+export async function planSave(_: ActionResult, f: FormData) {
+  const person = s(f, "person");
+  const goals = String(f.get("goals") ?? "").split("\n").map((g) => g.trim()).filter(Boolean)
+    .map((g) => ({ goal: g.replace(/^\[x\]\s*/i, ""), done: /^\[x\]/i.test(g) }));
+  return call("plan_save", { p_plan: s(f, "plan"), p_person: person, p_kind: s(f, "kind"), p_due: s(f, "due"), p_goals: goals, p_status: s(f, "status") },
+    [`/people/${person}`, "/me", "/owner"], "Plan saved and the educator can see it.");
+}
+
+// ── B7/P4. Levels ─────────────────────────────────────────
+export async function levelDecide(_: ActionResult, f: FormData) {
+  const r = await call("level_change_decide", { p_id: s(f, "id"), p_decision: s(f, "decision") }, ["/levels"], "");
+  return r.ok ? { ...r, message: r.data === "approved" ? "Approved by both sides. HR has been asked to update ERPNext." : r.data === "rejected" ? "Rejected." : "Your approval is recorded. Waiting for the other approver." } : r;
+}
+export async function levelSuggest(_: ActionResult, _f: FormData) {
+  const r = await call("level_suggestions_run", {}, ["/levels"], "");
+  return r.ok ? { ...r, message: `Checked every educator · ${r.data} suggestion${r.data === 1 ? "" : "s"} (existing ones are not duplicated).` } : r;
+}
+
+// ── E7. QAer onboarding ───────────────────────────────────
+export async function onboardingComplete(_: ActionResult, f: FormData) {
+  return call("qaer_onboarding_complete", { p_template_key: s(f, "key") }, ["/onboarding", "/education"], "Marked as complete. You are ready to use this template.");
+}
+
+// ── C5/D7. Master classes ─────────────────────────────────
+export async function masterClassSchedule(_: ActionResult, f: FormData) {
+  const when = s(f, "when");
+  const supabase = await db();
+  const { data: cl } = await supabase.from("classrooms").select("cohort_id").eq("id", s(f, "classroom")).maybeSingle();
+  return call("master_class_schedule", {
+    p_cohort: cl?.cohort_id ?? null, p_classroom: s(f, "classroom"), p_kind: s(f, "kind"), p_title: s(f, "title"), p_instructor: s(f, "instructor"),
+    p_when: when ? new Date(when + "+03:00").toISOString() : null, p_assignee: s(f, "assignee"),
+  }, ["/master-classes", "/visits", "/calendar"], "Scheduled. The instructor and the evaluator have been notified.");
 }

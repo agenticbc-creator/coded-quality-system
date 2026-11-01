@@ -49,7 +49,7 @@ export default async function Scores({ searchParams }: { searchParams: Promise<{
       <div className="mb-6 grid gap-3 sm:grid-cols-4">
         {[1, 2, 3, 4].map((t) => (
           <div key={t} className="rounded-xl border border-line bg-white p-4 shadow-card">
-            <div className="flex items-center justify-between"><TierBadge tier={t} /><span className="font-mono text-[22px] font-semibold" style={{ color: tierColor([95, 87, 80, 70][t - 1]) }}>{list.filter((c) => c.tier === t).length}</span></div>
+            <div className="flex items-center justify-between"><TierBadge tier={t} /><span className="tabular-nums text-[22px] font-semibold" style={{ color: tierColor([95, 87, 80, 70][t - 1]) }}>{list.filter((c) => c.tier === t).length}</span></div>
             <p className="mt-2 text-[11.5px] leading-snug text-ink-500">{TIER[t as 1].range} · {TIER[t as 1].action}</p>
           </div>
         ))}
@@ -65,8 +65,8 @@ export default async function Scores({ searchParams }: { searchParams: Promise<{
                 <tr key={c.id} className="hover:bg-canvas/60">
                   <td className={td}><Link href={`/people/${c.person.id}`} className="font-medium text-navy hover:text-brand">{c.person.full_name}</Link><div className="text-[11px] text-ink-500">{SEGMENT[c.segment_id]} · {ago(c.computed_at)}</div></td>
                   <td className={td}>{c.role === "ta" ? "TA" : "Instructor"}</td>
-                  {(["qa", "ops", "r360", "acc"] as const).map((x) => <td key={x} className={`${td} font-mono`} style={{ color: tierColor(k[x]?.score) }}>{k[x]?.score ?? <span className="text-ink-300">—</span>}</td>)}
-                  <td className={td}><div className="flex w-36 items-center gap-2"><span className="w-10 font-mono font-semibold" style={{ color: tierColor(c.total) }}>{num(c.total)}</span><ScoreBar value={c.total} showMarks={false} height="h-1.5" /></div></td>
+                  {(["qa", "ops", "r360", "acc"] as const).map((x) => <td key={x} className={`${td} tabular-nums`} style={{ color: tierColor(k[x]?.score) }}>{k[x]?.score ?? <span className="text-ink-300">—</span>}</td>)}
+                  <td className={td}><div className="flex w-36 items-center gap-2"><span className="w-10 tabular-nums font-semibold" style={{ color: tierColor(c.total) }}>{num(c.total)}</span><ScoreBar value={c.total} showMarks={false} height="h-1.5" /></div></td>
                   <td className={td}><TierBadge tier={c.tier} provisional={c.provisional} />{c.provisional && <div className="mt-1 max-w-[220px] text-[11px] text-ink-500">{c.gate_failures.join("; ")}</div>}</td>
                 </tr>
               );

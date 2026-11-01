@@ -57,7 +57,7 @@ export function Hero({ d, self }: { d: PersonData; self: boolean }) {
 function Mini({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg bg-white/[0.06] px-2 py-2 ring-1 ring-white/10">
-      <div className="font-mono text-[16px] font-semibold">{value}</div>
+      <div className="tabular-nums text-[16px] font-semibold">{value}</div>
       <div className="text-[10.5px] uppercase tracking-wider text-white/50">{label}</div>
     </div>
   );
@@ -81,7 +81,7 @@ export function Breakdown({ d }: { d: PersonData }) {
                   <span className="text-[13.5px] font-semibold text-navy">{COMPONENT[k].label}</span>
                   <span className="ml-2 text-[12px] text-ink-500">{x.weight}% · {COMPONENT[k].hint}</span>
                 </div>
-                <div className="font-mono text-[15px] font-semibold" style={{ color: tierColor(x.score) }}>
+                <div className="tabular-nums text-[15px] font-semibold" style={{ color: tierColor(x.score) }}>
                   {x.score ?? "—"}
                   {x.n !== undefined && <span className="ml-1.5 text-[11px] font-normal text-ink-400">n={x.n}</span>}
                 </div>
@@ -92,7 +92,7 @@ export function Breakdown({ d }: { d: PersonData }) {
                   {Object.entries(x.parts as Record<string, number | null>).map(([pk, pv]) => (
                     <div key={pk} className="flex justify-between text-[12px]">
                       <span className="text-ink-500">{ACC_PART[pk]}</span>
-                      <span className="font-mono text-ink-600">{pv === null ? "no data" : `${num(pv)}%`}</span>
+                      <span className="tabular-nums text-ink-600">{pv === null ? "no data" : `${num(pv)}%`}</span>
                     </div>
                   ))}
                 </div>
@@ -119,7 +119,7 @@ export function Trend({ d }: { d: PersonData }) {
         <div className="flex h-40 items-end gap-3">
           {rows.map((r) => (
             <div key={r.period} className="flex flex-1 flex-col items-center gap-2">
-              <div className="font-mono text-[12.5px] font-semibold" style={{ color: tierColor(r.total) }}>{num(r.total)}</div>
+              <div className="tabular-nums text-[12.5px] font-semibold" style={{ color: tierColor(r.total) }}>{num(r.total)}</div>
               <div className="relative w-full max-w-[46px] flex-1 rounded-t-md bg-canvas">
                 <div className={cx("absolute inset-x-0 bottom-0 rounded-t-md", r.provisional && "opacity-60")} style={{ height: `${Math.max(4, (Number(r.total ?? 0) - 50) * 2)}%`, background: tierColor(r.total) }} />
               </div>
@@ -173,7 +173,7 @@ export function SignalGrid({ title, data, role }: { title: string; data: any; ro
               {i.label}
               {i.alert ? <Icon name="alert" className="h-3.5 w-3.5 text-tier4" /> : <Icon name="check" className="h-3.5 w-3.5 text-tier1" />}
             </div>
-            <div className={cx("mt-1 font-mono text-[20px] font-semibold", i.alert ? "text-tier4" : "text-navy")}>{i.value}</div>
+            <div className={cx("mt-1 tabular-nums text-[20px] font-semibold", i.alert ? "text-tier4" : "text-navy")}>{i.value}</div>
             {i.hint && <div className="mt-0.5 text-[11.5px] text-ink-500">{i.hint}</div>}
           </div>
         ))}
@@ -252,11 +252,11 @@ export function History({ d }: { d: PersonData }) {
               const sv = surveyFor(c.cohort?.name);
               return (
                 <tr key={c.id}>
-                  <td className="px-5 py-3"><div className="font-medium text-navy">{c.cohort?.name ?? c.program?.name ?? "Segment contract"}</div><div className="font-mono text-[11px] text-ink-400">{c.id} · {fmtDate(c.start_date, { month: "short", year: "numeric" })}–{fmtDate(c.end_date, { month: "short", year: "numeric" })}</div></td>
+                  <td className="px-5 py-3"><div className="font-medium text-navy">{c.cohort?.name ?? c.program?.name ?? "Segment contract"}</div><div className="tabular-nums text-[11px] text-ink-400">{c.id} · {fmtDate(c.start_date, { month: "short", year: "numeric" })}–{fmtDate(c.end_date, { month: "short", year: "numeric" })}</div></td>
                   <td className="px-3 py-3">{c.segment_id ? SEGMENT[c.segment_id] : "Any"}</td>
                   <td className="px-3 py-3">{c.role}</td>
-                  <td className="px-3 py-3">{comp ? <span className="font-mono font-semibold" style={{ color: tierColor(comp.total) }}>{num(comp.total)} <span className="text-[11px] font-normal text-ink-500">T{comp.tier}{comp.provisional ? " · prov." : ""}</span></span> : "—"}</td>
-                  <td className="px-3 py-3 font-mono">{sv ? `${sv.avg} / 5` : "—"}</td>
+                  <td className="px-3 py-3">{comp ? <span className="tabular-nums font-semibold" style={{ color: tierColor(comp.total) }}>{num(comp.total)} <span className="text-[11px] font-normal text-ink-500">T{comp.tier}{comp.provisional ? " · prov." : ""}</span></span> : "—"}</td>
+                  <td className="px-3 py-3 tabular-nums">{sv ? `${sv.avg} / 5` : "—"}</td>
                   <td className="px-5 py-3"><Badge tone={c.status === "Active" ? "green" : c.status === "Completed" ? "neutral" : "amber"}>{c.status}</Badge></td>
                 </tr>
               );
@@ -349,7 +349,7 @@ export function Surveys({ d }: { d: PersonData }) {
                       <div key={r.id} className="grid grid-cols-[minmax(0,1fr)_120px_40px] items-center gap-3 text-[12.5px]">
                         <span className="text-ink-600">{r.area}</span>
                         <ScoreBar value={(r.avg / 5) * 100} showMarks={false} height="h-1.5" />
-                        <span className="text-right font-mono font-semibold text-navy">{r.avg}</span>
+                        <span className="text-right tabular-nums font-semibold text-navy">{r.avg}</span>
                       </div>
                     ))}
                     {rows.flatMap((r) => r.screened_comments).filter(Boolean).slice(0, 2).map((c: string, i: number) => (
@@ -379,7 +379,7 @@ export function Review360({ d, self }: { d: PersonData; self: boolean }) {
       ) : (
         <div>
           <div className="flex items-baseline gap-3">
-            <span className="font-mono text-[30px] font-semibold text-navy">{a.avg}</span>
+            <span className="tabular-nums text-[30px] font-semibold text-navy">{a.avg}</span>
             <span className="text-[13px] text-ink-500">/ 5 · {a.n} reviewers · scores {a.score}</span>
           </div>
           <div className="mt-3 grid gap-x-6 gap-y-1.5 sm:grid-cols-2">
@@ -387,7 +387,7 @@ export function Review360({ d, self }: { d: PersonData; self: boolean }) {
               <div key={k} className="grid grid-cols-[minmax(0,1fr)_70px_34px] items-center gap-2 text-[12.5px]">
                 <span className="capitalize text-ink-600">{k.replace(/_/g, " ")}</span>
                 <ScoreBar value={(v / 5) * 100} showMarks={false} height="h-1.5" />
-                <span className="text-right font-mono text-navy">{v}</span>
+                <span className="text-right tabular-nums text-navy">{v}</span>
               </div>
             ))}
           </div>
@@ -428,7 +428,7 @@ export function Profile({ d }: { d: PersonData }) {
   return (
     <Card>
       <CardTitle icon="database" sub="Read from ERPNext; filled on the quality-system side only where ERPNext is missing a detail">Profile</CardTitle>
-      <KV k="ERPNext supplier" v={<span className="font-mono">{p.erp_supplier_id ?? "—"}</span>} />
+      <KV k="ERPNext supplier" v={<span className="tabular-nums">{p.erp_supplier_id ?? "—"}</span>} />
       <KV k="Service category" v={p.erp_service_category ?? "—"} />
       <KV k="Instructor level" v={p.erp_instructor_level ?? (p.qs_instructor_level ? <span>{p.qs_instructor_level} <Badge tone="amber">filled here</Badge></span> : "—")} />
       <KV k="Contractor status" v={p.erp_contractor_status ?? "—"} />
@@ -438,3 +438,19 @@ export function Profile({ d }: { d: PersonData }) {
   );
 }
 
+
+/* ── WB: what this system writes back to the ERPNext record ── */
+export function WriteBack({ d }: { d: PersonData }) {
+  const w = d.writeback;
+  if (!w) return null;
+  return (
+    <Card>
+      <CardTitle icon="refresh" sub="Computed here for the person's ERPNext record. HR applies them; this system never changes contractor status.">Written to ERPNext</CardTitle>
+      <KV k="QS approval status" v={w.approval_status?.replace("_", " ") ?? "—"} />
+      <KV k="Latest composite" v={w.composite ? `${num(w.composite.total)} · Tier ${w.composite.tier}${w.composite.provisional ? " (provisional)" : ""} · ${periodLabel(w.composite.period)}` : "—"} />
+      <KV k="Last education QA" v={w.last_qa ? `${num(w.last_qa.score)}% · ${fmtDate(w.last_qa.date)}` : "—"} />
+      <KV k="Open plan" v={w.open_plan ? `${w.open_plan.kind === "coaching" ? "Coaching" : "Improvement"} · due ${fmtDate(w.open_plan.due)}` : "None"} />
+      <KV k="CCTP" v={w.cctp?.cert ? <span className="inline-flex items-center gap-1"><Icon name="award" className="h-3.5 w-3.5 text-tier1" />{w.cctp.cert}</span> : w.cctp?.rank ?? "—"} />
+    </Card>
+  );
+}

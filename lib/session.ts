@@ -41,25 +41,30 @@ export type NavItem = { href: string; label: string; icon: string };
 /** Navigation follows the stakeholder views in the PRD. */
 export function navFor(me: Person): { section: string; items: NavItem[] }[] {
   const out: { section: string; items: NavItem[] }[] = [];
-  const work: NavItem[] = [];
-  if (isEducator(me)) work.push({ href: "/me", label: "My dashboard", icon: "home" });
-  if (isOwner(me)) work.push({ href: "/owner", label: "Segment overview", icon: "grid" });
-  if (has(me, "operations")) work.push({ href: "/ops", label: "Today", icon: "sun" });
-  if (has(me, "gm")) work.push({ href: "/overview", label: "Overview", icon: "eye" });
-  if (has(me, "hr")) work.push({ href: "/people", label: "People", icon: "users" });
-  if (has(me, "system_owner")) work.push({ href: "/admin", label: "System", icon: "settings" });
-  if (has(me, "education_principal", "senior_instructor", "education_officer") && !isOwner(me))
-    work.push({ href: "/visits", label: "My visits", icon: "clipboard" });
-  if (work.length) out.push({ section: "Home", items: work });
+  const home: NavItem[] = [];
+  if (isEducator(me)) home.push({ href: "/me", label: "My dashboard", icon: "home" });
+  if (has(me, "cctp_candidate") && !isEducator(me)) home.push({ href: "/cctp", label: "My CCTP path", icon: "award" });
+  if (isOwner(me)) home.push({ href: "/owner", label: "Segment overview", icon: "grid" });
+  if (isEducation(me) && !isOwner(me)) home.push({ href: "/education", label: "Education home", icon: "compass" });
+  if (has(me, "operations")) home.push({ href: "/ops", label: "Today", icon: "sun" });
+  if (has(me, "gm")) home.push({ href: "/overview", label: "Overview", icon: "eye" });
+  if (has(me, "hr")) home.push({ href: "/people", label: "People", icon: "users" });
+  if (has(me, "system_owner")) home.push({ href: "/admin", label: "System", icon: "settings" });
+  const approver = has(me, "segment_owner", "education_principal", "senior_instructor", "education_officer", "operations", "hr", "gm", "system_owner", "content_creator");
+  if (approver) home.push({ href: "/approvals", label: "Waiting on me", icon: "inbox" });
+  home.push({ href: "/calendar", label: "Calendar", icon: "calendar" });
+  out.push({ section: "Home", items: home });
 
   const quality: NavItem[] = [];
   if (isOwner(me) || isEducation(me) || has(me, "operations")) quality.push({ href: "/visits", label: "Visits", icon: "clipboard" });
   if (isOwner(me)) quality.push({ href: "/feedback/release", label: "Release queue", icon: "send" });
-  quality.push({ href: "/feedback/new", label: "Log feedback", icon: "pen" });
+  if (!has(me, "cctp_candidate", "candidate") || isEducator(me)) quality.push({ href: "/feedback/new", label: "Log feedback", icon: "pen" });
   if (isEducator(me) || has(me, "operations")) quality.push({ href: "/reviews", label: "360° reviews", icon: "repeat" });
-  if (isOwner(me) || has(me, "education_principal", "senior_instructor", "hr", "gm", "system_owner") || has(me, "lead_instructor"))
+  if (isOwner(me) || has(me, "education_principal", "senior_instructor", "hr", "gm", "system_owner", "lead_instructor"))
     quality.push({ href: "/scores", label: "Scores", icon: "chart" });
-  out.push({ section: "Quality", items: dedupe(quality, work) });
+  if (isOwner(me) || has(me, "education_principal", "senior_instructor", "gm", "instructor"))
+    quality.push({ href: "/master-classes", label: "Master classes", icon: "star" });
+  if (quality.length) out.push({ section: "Quality", items: quality });
 
   const appr: NavItem[] = [];
   if (has(me, "content_creator", "instructor", "senior_instructor", "education_principal", "segment_owner", "operations", "gm", "system_owner"))
@@ -68,10 +73,19 @@ export function navFor(me: Person): { section: string; items: NavItem[] }[] {
     appr.push({ href: "/approvals/people", label: "People", icon: "user-check" });
   if (isOwner(me) || has(me, "operations", "education_principal", "senior_instructor", "gm", "system_owner"))
     appr.push({ href: "/cohorts", label: "Cohorts", icon: "layers" });
+  if (isOwner(me) || has(me, "hr", "gm", "education_principal", "system_owner"))
+    appr.push({ href: "/levels", label: "Levels & readiness", icon: "trending" });
   if (appr.length) out.push({ section: "Approvals", items: appr });
 
+  const growth: NavItem[] = [];
+  if (isEducator(me)) growth.push({ href: "/report-card", label: "Report card", icon: "doc" });
+  if (isEducator(me) || isEducation(me) || isOwner(me) || has(me, "hr", "gm", "system_owner")) growth.push({ href: "/cctp", label: "CCTP", icon: "award" });
+  if (isEducation(me) || has(me, "operations")) growth.push({ href: "/onboarding", label: "QAer onboarding", icon: "target" });
   if (has(me, "segment_owner", "education_principal", "senior_instructor", "gm", "system_owner") && !has(me, "hr"))
-    out.push({ section: "Directory", items: [{ href: "/people", label: "People", icon: "users" }] });
+    growth.push({ href: "/people", label: "People", icon: "users" });
+  if (growth.length) out.push({ section: "People & growth", items: dedupe(growth, home) });
+
+  out.push({ section: "Help", items: [{ href: "/handbook", label: "Handbook", icon: "help" }, { href: "/coverage", label: "PRD coverage", icon: "map" }] });
   return out;
 }
 
@@ -86,11 +100,11 @@ export function homeFor(me: Person) {
   if (has(me, "gm")) return "/overview";
   if (has(me, "hr")) return "/people";
   if (has(me, "operations")) return "/ops";
-  if (has(me, "education_principal")) return "/approvals/content";
-  if (has(me, "senior_instructor", "education_officer")) return "/visits";
+  if (isEducation(me)) return "/education";
   if (isEducator(me)) return "/me";
   if (has(me, "content_creator")) return "/approvals/content";
-  return "/me";
+  if (has(me, "cctp_candidate")) return "/cctp";
+  return "/handbook";
 }
 
 export function roleLabel(me: Person) {
@@ -107,6 +121,7 @@ export function roleLabel(me: Person) {
     instructor: "Instructor",
     ta: "Teaching Assistant",
     content_creator: "Content creator",
+    cctp_candidate: "CCTP candidate",
   };
   for (const r of Object.keys(map)) if (me.roles.includes(r)) return map[r];
   return "Candidate";

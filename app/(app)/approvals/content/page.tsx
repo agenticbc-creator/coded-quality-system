@@ -72,7 +72,7 @@ export default async function ContentList() {
                 <td className={td}>{i.program?.name}<div className="text-[11.5px] text-ink-500">{SEGMENT[i.program?.segment_id]}</div></td>
                 <td className={td}>{i.creator?.full_name}</td>
                 <td className={td}><Badge tone={tone}>{label}</Badge></td>
-                <td className={td}><span className="font-mono">{(i.versions ?? []).length}</span>{revisions(i) ? <span className="text-[11.5px] text-ink-500"> · {revisions(i)} revision(s)</span> : null}</td>
+                <td className={td}><span className="tabular-nums">{(i.versions ?? []).length}</span>{revisions(i) ? <span className="text-[11.5px] text-ink-500"> · {revisions(i)} revision(s)</span> : null}</td>
                 <td className={td}>{t !== null ? `${t} days` : "—"}</td>
               </tr>
             );

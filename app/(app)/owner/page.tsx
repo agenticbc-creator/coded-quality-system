@@ -53,7 +53,7 @@ export default async function OwnerHome() {
             <div className="grid grid-cols-4 gap-2">
               {tiers.map((n, i) => (
                 <div key={i} className="rounded-lg border border-line p-3 text-center">
-                  <div className="font-mono text-[24px] font-semibold" style={{ color: tierColor([95, 87, 80, 70][i]) }}>{n}</div>
+                  <div className="tabular-nums text-[24px] font-semibold" style={{ color: tierColor([95, 87, 80, 70][i]) }}>{n}</div>
                   <div className="text-[11.5px] text-ink-500">{TIER[(i + 1) as 1].label}</div>
                 </div>
               ))}
@@ -63,7 +63,7 @@ export default async function OwnerHome() {
                 <li key={c.id} className="grid grid-cols-[minmax(0,1fr)_120px_auto] items-center gap-3 py-2.5">
                   <Link href={`/people/${c.person.id}`} className="truncate text-[13.5px] font-medium text-navy hover:text-brand">{c.person.full_name} <span className="text-[11.5px] font-normal text-ink-500">{c.role === "ta" ? "TA" : "Instructor"}</span></Link>
                   <ScoreBar value={c.total} />
-                  <span className="flex items-center gap-2"><span className="w-10 text-right font-mono text-[13px] font-semibold" style={{ color: tierColor(c.total) }}>{num(c.total)}</span><TierBadge tier={c.tier} provisional={c.provisional} /></span>
+                  <span className="flex items-center gap-2"><span className="w-10 text-right tabular-nums text-[13px] font-semibold" style={{ color: tierColor(c.total) }}>{num(c.total)}</span><TierBadge tier={c.tier} provisional={c.provisional} /></span>
                 </li>
               ))}
             </ul>
@@ -88,8 +88,8 @@ export default async function OwnerHome() {
                       <div key={cl.id} className="rounded-lg border border-line p-3">
                         <div className="text-[13px] font-semibold text-navy">{cl.name}</div>
                         <div className="text-[11.5px] text-ink-500">{cl.classroom_staff.find((x: any) => x.role === "instructor")?.person.full_name}</div>
-                        <div className="mt-2 flex items-baseline justify-between"><span className="text-[11.5px] text-ink-500">Class QA</span><span className="font-mono font-semibold" style={{ color: tierColor(q) }}>{num(q)}</span></div>
-                        <div className="flex items-baseline justify-between"><span className="text-[11.5px] text-ink-500">App alerts</span><span className={cx("font-mono font-semibold", alerts ? "text-tier4" : "text-tier1")}>{alerts}</span></div>
+                        <div className="mt-2 flex items-baseline justify-between"><span className="text-[11.5px] text-ink-500">Class QA</span><span className="tabular-nums font-semibold" style={{ color: tierColor(q) }}>{num(q)}</span></div>
+                        <div className="flex items-baseline justify-between"><span className="text-[11.5px] text-ink-500">App alerts</span><span className={cx("tabular-nums font-semibold", alerts ? "text-tier4" : "text-tier1")}>{alerts}</span></div>
                       </div>
                     );
                   })}

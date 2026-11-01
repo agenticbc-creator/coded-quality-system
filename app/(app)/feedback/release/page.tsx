@@ -76,7 +76,7 @@ function VisitItem({ v, red }: { v: any; red?: boolean }) {
         <div className="mt-3 flex flex-wrap gap-2">
           {subjects.map((s: any) => (
             <span key={s.id} className={cx("rounded-lg px-2.5 py-1 text-[12.5px] ring-1 ring-inset", Number(s.pct) < 75 ? "bg-tier4-bg text-tier4 ring-[#F6C9C6]" : "bg-canvas text-ink-600 ring-line")}>
-              {s.subject?.full_name ?? "Class overall"} <span className="font-mono font-semibold">{num(s.pct)}</span>
+              {s.subject?.full_name ?? "Class overall"} <span className="tabular-nums font-semibold">{num(s.pct)}</span>
             </span>
           ))}
         </div>

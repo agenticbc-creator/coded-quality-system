@@ -49,7 +49,7 @@ export default async function Overview() {
             <CardTitle icon="chart" sub="Average composite and tier spread this quarter">Quality by segment</CardTitle>
             {bySeg.map(({ s, list, avg }) => (
               <div key={s} className="border-b border-line/70 py-3 last:border-0">
-                <div className="flex items-center justify-between"><span className="text-[14px] font-semibold text-navy">{SEGMENT[s]}</span><span className="font-mono text-[18px] font-semibold" style={{ color: tierColor(avg) }}>{avg ? num(avg) : "—"}</span></div>
+                <div className="flex items-center justify-between"><span className="text-[14px] font-semibold text-navy">{SEGMENT[s]}</span><span className="tabular-nums text-[18px] font-semibold" style={{ color: tierColor(avg) }}>{avg ? num(avg) : "—"}</span></div>
                 <div className="mt-1.5 flex flex-wrap gap-1.5">{[1, 2, 3, 4].map((t) => { const n = list.filter((c: any) => c.tier === t).length; return n ? <TierBadge key={t} tier={t} /> : null; })}{!list.length && <span className="text-[12px] text-ink-500">No scores this quarter</span>}</div>
               </div>
             ))}

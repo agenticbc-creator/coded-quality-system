@@ -16,8 +16,8 @@ export function PageHeader({ eyebrow, title, sub, actions, back }: { eyebrow?: s
             <Icon name="back" className="h-3.5 w-3.5" /> {back.label}
           </Link>
         )}
-        {eyebrow && <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-brand">{eyebrow}</div>}
-        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-navy">{title}</h1>
+        {eyebrow && <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-brand"><span className="h-[2px] w-5 bg-brand" />{eyebrow}</div>}
+        <h1 className="text-[28px] font-bold leading-tight tracking-tight text-navy">{title}</h1>
         {sub && <p className="mt-1.5 max-w-3xl text-[14px] leading-relaxed text-ink-500">{sub}</p>}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
@@ -26,7 +26,7 @@ export function PageHeader({ eyebrow, title, sub, actions, back }: { eyebrow?: s
 }
 
 export function Card({ children, className, pad = true }: { children: ReactNode; className?: string; pad?: boolean }) {
-  return <section className={cx("rounded-xl border border-line bg-white shadow-card", pad && "p-5", className)}>{children}</section>;
+  return <section className={cx("rounded-xl border border-line bg-white shadow-card", pad && "p-5 md:p-6", className)}>{children}</section>;
 }
 
 export function CardTitle({ children, sub, right, icon }: { children: ReactNode; sub?: ReactNode; right?: ReactNode; icon?: string }) {
@@ -34,7 +34,7 @@ export function CardTitle({ children, sub, right, icon }: { children: ReactNode;
     <div className="mb-4 flex items-start justify-between gap-3">
       <div className="flex min-w-0 items-start gap-2.5">
         {icon && (
-          <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand">
+          <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-md bg-navy text-white">
             <Icon name={icon} className="h-4 w-4" />
           </span>
         )}
@@ -92,11 +92,11 @@ export function TierBadge({ tier, provisional, size = "sm" }: { tier: number | n
 }
 
 export function tierColor(score: number | null | undefined) {
-  if (score === null || score === undefined) return "#C4C9D2";
-  if (score >= 90) return "#0F8A5F";
+  if (score === null || score === undefined) return "#D2D2D2";
+  if (score >= 90) return "#0E7A55";
   if (score >= 85) return "#004AA3";
-  if (score >= 75) return "#B26B00";
-  return "#C2362F";
+  if (score >= 75) return "#A35F00";
+  return "#B42E28";
 }
 
 /** Horizontal score bar with target (90) and floor (85) markers. */
@@ -125,7 +125,7 @@ export function ScoreRing({ value, size = 168, provisional }: { value: number | 
     <div className="relative" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,.12)" strokeWidth={10} />
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color === "#004AA3" ? "#5B9BE6" : color === "#0F8A5F" ? "#3FD39B" : color === "#B26B00" ? "#F2B248" : "#F07A72"}
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color === "#004AA3" ? "#6FA3EA" : color === "#0E7A55" ? "#3FD39B" : color === "#A35F00" ? "#F2B248" : color === "#D2D2D2" ? "#9AA6BC" : "#F07A72"}
           strokeWidth={10} strokeLinecap="round" strokeDasharray={`${(v / 100) * c} ${c}`} strokeDashoffset={0}
           style={provisional ? { strokeDasharray: `${(v / 100) * c} ${c}`, opacity: 0.85 } : undefined} />
         {/* target tick at 90 */}
@@ -133,7 +133,7 @@ export function ScoreRing({ value, size = 168, provisional }: { value: number | 
       </svg>
       <div className="absolute inset-0 grid place-items-center text-center">
         <div>
-          <div className="font-mono text-[44px] font-semibold leading-none tracking-tight text-white">{value === null || value === undefined ? "—" : num(value)}</div>
+          <div className="text-[46px] font-bold leading-none tracking-tight tabular-nums text-white">{value === null || value === undefined ? "—" : num(value)}</div>
           <div className="mt-1 text-[11px] uppercase tracking-[0.16em] text-white/60">{provisional ? "provisional" : "composite"}</div>
         </div>
       </div>
@@ -158,7 +158,7 @@ export function Stat({ label, value, sub, tone, icon }: { label: string; value: 
         {label}
         {icon && <Icon name={icon} className="h-4 w-4 text-ink-400" />}
       </div>
-      <div className={cx("mt-2 font-mono text-[28px] font-semibold leading-none tracking-tight", color)}>{value}</div>
+      <div className={cx("mt-2 text-[30px] font-bold leading-none tracking-tight tabular-nums", color)}>{value}</div>
       {sub && <div className="mt-1.5 text-[12px] text-ink-500">{sub}</div>}
     </div>
   );
@@ -187,7 +187,7 @@ export function btn(variant: "primary" | "secondary" | "ghost" | "danger" = "pri
   const base = "inline-flex items-center justify-center gap-1.5 rounded-lg font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 disabled:cursor-not-allowed disabled:opacity-50";
   const s = size === "sm" ? "h-8 px-3 text-[12.5px]" : "h-9 px-3.5 text-[13.5px]";
   const v = {
-    primary: "bg-brand text-white hover:bg-brand-600 shadow-sm",
+    primary: "bg-navy text-white hover:bg-brand shadow-sm",
     secondary: "bg-white text-navy ring-1 ring-inset ring-line hover:bg-canvas",
     ghost: "text-ink-600 hover:bg-canvas hover:text-navy",
     danger: "bg-white text-tier4 ring-1 ring-inset ring-[#F6C9C6] hover:bg-tier4-bg",

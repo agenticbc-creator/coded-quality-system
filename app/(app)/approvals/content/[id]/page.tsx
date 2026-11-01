@@ -4,18 +4,33 @@ import { db } from "@/lib/supabase";
 import { Badge, Card, CardTitle, Field, KV, Notice, PageHeader, input } from "@/components/ui";
 import { ActionForm, Submit } from "@/components/forms";
 import { Icon } from "@/components/icons";
-import { contentDecide, contentSubmit } from "@/app/actions";
+import { contentDecide, contentEnableStages, contentStageDecide, contentSubmit } from "@/app/actions";
+import { cx } from "@/components/ui";
+
+const STAGE_LABEL: Record<string, string> = { outline: "Outline", detailed_outline: "Detailed outline", lesson_plan: "Lesson plan", final_briefing: "Final briefing", alpha: "Alpha · technical review", beta: "Beta · pedagogy review" };
+const PRECHECK: [string, string][] = [
+  ["seventy_thirty", "70/30: at least 70% of session time is hands-on"],
+  ["arc", "Each session follows the Arc (hook → model → practice → reflect)"],
+  ["productive_struggle", "Exercises leave room for productive struggle (no copy-paste answers)"],
+  ["real_life", "Projects use real-life cases from the trainees' world"],
+  ["time_boxed", "Every activity is time-boxed"],
+  ["outcomes_mapped", "Every outcome in the brief maps to at least one exercise"],
+];
 import { SEGMENT, fmtDate, fmtDateTime, working } from "./util";
 
 export default async function ContentItem({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const me = await getMe();
   const supabase = await db();
-  const [{ data: item }, { data: approverSetting }, { data: cohorts }] = await Promise.all([
+  const [{ data: item }, { data: approverSetting }, { data: cohorts }, { data: stages }] = await Promise.all([
     supabase.from("content_items").select("*, program:programs(name, segment_id), creator:people!content_items_creator_id_fkey(id, full_name), approver:people!content_items_approved_by_fkey(full_name), versions:content_versions(*, decider:people!content_versions_decided_by_fkey(full_name))").eq("id", id).maybeSingle(),
     supabase.from("settings").select("value, status").eq("key", "content_approver_role").maybeSingle(),
     supabase.from("cohorts").select("id, name, status, content_version").eq("content_id", id),
+    supabase.from("content_stages").select("*, decider:people!content_stages_decided_by_fkey(full_name)").eq("content_id", id).order("ord"),
   ]);
+  const stageList = (stages ?? []) as any[];
+  const nextStage = stageList.find((st) => st.status !== "approved");
+  const stagesOpen = item?.staged && !!nextStage;
   if (!item) notFound();
   const versions = (item.versions ?? []).sort((a: any, b: any) => b.version - a.version);
   const pending = versions.find((v: any) => v.decision === "pending");
@@ -33,13 +48,20 @@ export default async function ContentItem({ params }: { params: Promise<{ id: st
             <Card className="border-brand-100 ring-1 ring-brand-100">
               <CardTitle icon="check" sub={`Version ${pending.version} · submitted ${fmtDateTime(pending.submitted_at)} · ${working(pending.submitted_at)} working day(s) waiting (turnaround: 3)`}>Your decision</CardTitle>
               {pending.summary && <p className="mb-2 text-[13.5px]">{pending.summary}</p>}
+              {pending.precheck && (
+                <div className="mb-3 grid gap-1 rounded-lg bg-zebra p-3 text-[12.5px]">
+                  <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-ink-500">Creator's pre-check</div>
+                  {PRECHECK.map(([k, l]) => <div key={k} className="flex items-center gap-2"><Icon name={pending.precheck[k] ? "check" : "x"} className={cx("h-3.5 w-3.5", pending.precheck[k] ? "text-tier1" : "text-tier4")} />{l}</div>)}
+                </div>
+              )}
               {pending.link && <a href={pending.link} target="_blank" rel="noreferrer" className="mb-4 inline-flex items-center gap-1.5 text-[13px] font-medium text-brand"><Icon name="link" className="h-4 w-4" /> Open the content</a>}
               <ActionForm action={contentDecide} className="space-y-3">
                 <input type="hidden" name="content" value={id} />
                 <input type="hidden" name="version" value={pending.id} />
                 <Field label="Comments" hint="Required when you request changes. Every round is versioned."><textarea name="comments" rows={3} className={input} /></Field>
                 <div className="flex flex-wrap gap-2">
-                  <Submit name="decision" value="approved" icon="check">Approve this version</Submit>
+                  {stagesOpen ? <span className="inline-flex items-center gap-1.5 rounded-lg bg-canvas px-3 text-[12.5px] text-ink-500"><Icon name="lock" className="h-3.5 w-3.5" /> Final approval unlocks after the {STAGE_LABEL[nextStage.stage]} stage</span>
+                    : <Submit name="decision" value="approved" icon="check">Approve this version</Submit>}
                   <Submit name="decision" value="changes_requested" variant="danger">Request changes</Submit>
                 </div>
               </ActionForm>
@@ -54,11 +76,51 @@ export default async function ContentItem({ params }: { params: Promise<{ id: st
                 <input type="hidden" name="content" value={id} />
                 <Field label="What changed"><textarea name="summary" rows={2} className={input} /></Field>
                 <Field label="Link to the content"><input name="link" type="url" className={input} placeholder="https://" /></Field>
+                <fieldset className="rounded-lg border border-line p-3">
+                  <legend className="px-1 text-[12px] font-semibold text-navy">Pre-check (X1) · the approver sees your answers</legend>
+                  <input type="hidden" name="precheck_on" value="1" />
+                  <div className="grid gap-1.5">
+                    {PRECHECK.map(([k, l]) => <label key={k} className="flex items-start gap-2 text-[12.5px]"><input type="checkbox" name={`pc_${k}`} className="mt-0.5 accent-[#14243F]" /> {l}</label>)}
+                  </div>
+                </fieldset>
                 <Submit icon="send">Submit version {versions.length + 1}</Submit>
               </ActionForm>
             </Card>
           )}
           {pending && !isApprover && <Notice tone="amber" title="Waiting for approval">Version {pending.version} is with the {approverRole.replace("_", " ")} ({working(pending.submitted_at)} working day(s)).</Notice>}
+          <Card>
+            <CardTitle icon="layers" sub="Optional stage gates (A6) with Alpha and Beta asset review (A7). The one final approval still applies at the end."
+              right={!item.staged && (isCreator || has(me, "education_principal")) ? (
+                <ActionForm action={contentEnableStages}><input type="hidden" name="content" value={id} /><Submit size="sm" variant="secondary">Turn on staged review</Submit></ActionForm>
+              ) : undefined}>Staged review</CardTitle>
+            {!item.staged ? <p className="text-[13px] text-ink-500">Off for this item. Turn it on for large builds so the outline, lesson plan and assets are approved step by step.</p> : (
+              <ol className="grid gap-2">
+                {stageList.map((st, i) => {
+                  const canDecide = st.id === nextStage?.id && !isCreator && (has(me, st.approver_role) || has(me, "education_principal"));
+                  return (
+                    <li key={st.id} className={cx("rounded-lg border p-3", st.status === "approved" ? "border-[#BFE5D5] bg-tier1-bg/40" : st.id === nextStage?.id ? "border-navy" : "border-line")}>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2.5">
+                          <span className={cx("grid h-6 w-6 place-items-center text-[11px] font-bold", st.status === "approved" ? "bg-tier1 text-white" : st.id === nextStage?.id ? "bg-navy text-white" : "bg-canvas text-ink-500")}>{st.status === "approved" ? <Icon name="check" className="h-3.5 w-3.5" strokeWidth={3} /> : i + 1}</span>
+                          <span className="text-[13.5px] font-semibold text-navy">{STAGE_LABEL[st.stage]}</span>
+                          <span className="text-[12px] text-ink-500">{st.approver_role === "education_principal" ? "Education Principal" : "Senior Instructor"}</span>
+                        </div>
+                        <Badge tone={st.status === "approved" ? "green" : st.status === "changes_requested" ? "red" : st.id === nextStage?.id ? "amber" : "neutral"}>{st.status === "approved" ? `Approved${st.decider ? " · " + st.decider.full_name : ""}` : st.status === "changes_requested" ? "Changes requested" : st.id === nextStage?.id ? "Up next" : "Waiting"}</Badge>
+                      </div>
+                      {st.comments && <p className="mt-2 text-[12.5px] italic text-ink-600">“{st.comments}”</p>}
+                      {canDecide && (
+                        <ActionForm action={contentStageDecide} className="mt-3 space-y-2">
+                          <input type="hidden" name="content" value={id} /><input type="hidden" name="stage" value={st.id} />
+                          <textarea name="comments" rows={2} className={input} placeholder="Comments (required to request changes)" />
+                          <div className="flex gap-2"><Submit size="sm" name="decision" value="approved" icon="check">Approve stage</Submit><Submit size="sm" variant="danger" name="decision" value="changes_requested">Request changes</Submit></div>
+                        </ActionForm>
+                      )}
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+          </Card>
           <Card>
             <CardTitle icon="refresh" sub="Every round, who decided and when">Version history</CardTitle>
             <ol className="relative space-y-5 border-l border-line pl-5">

@@ -90,7 +90,7 @@ export default async function Visits() {
                 <tr key={v.id}>
                   <td className={td}><Link href={`/visits/${v.id}`} className="font-medium text-navy hover:text-brand">{visitLabel(v)}</Link><div className="text-[11.5px] text-ink-500">{fmtDateTime(v.submitted_at)}</div></td>
                   <td className={td}>{v.cohort?.name} · {v.classroom?.name}</td><td className={td}>{v.assignee?.full_name}</td>
-                  <td className={td}><span className="font-mono text-[12.5px]">{(v.scores ?? []).map((s: any) => num(s.pct)).join(" · ") || "—"}</span></td>
+                  <td className={td}><span className="tabular-nums text-[12.5px]">{(v.scores ?? []).map((s: any) => num(s.pct)).join(" · ") || "—"}</span></td>
                   <td className={td}><Badge tone={v.release_status === "released" ? "green" : v.release_status === "pending" ? "amber" : "neutral"}>{v.release_status === "released" ? "Released" : v.release_status === "pending" ? "Pending" : "Private"}</Badge></td>
                 </tr>
               ))}

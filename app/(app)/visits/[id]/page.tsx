@@ -104,7 +104,7 @@ function Report({ v }: { v: any }) {
               <div key={s.id} className="grid grid-cols-[minmax(0,1fr)_140px_48px] items-center gap-3">
                 <span className="text-[13.5px] font-medium text-navy">{s.subject?.full_name ?? "Class overall"} <span className="text-[12px] font-normal text-ink-500">{s.subject_role === "ta" ? "TA" : s.subject_role}</span></span>
                 <ScoreBar value={s.pct} />
-                <span className={cx("text-right font-mono font-semibold", Number(s.pct) < 75 ? "text-tier4" : "text-navy")}>{num(s.pct)}</span>
+                <span className={cx("text-right tabular-nums font-semibold", Number(s.pct) < 75 ? "text-tier4" : "text-navy")}>{num(s.pct)}</span>
               </div>
             ))}
           </div>

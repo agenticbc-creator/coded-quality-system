@@ -47,15 +47,15 @@ export default async function People() {
                 <td className={td}>
                   <Link href={`/people/${p.id}`} className="flex items-center gap-2.5">
                     <Avatar name={p.full_name} size={30} />
-                    <span><span className="block font-medium text-navy hover:text-brand">{p.full_name}</span><span className="block font-mono text-[11px] text-ink-400">{p.erp_supplier_id}</span></span>
+                    <span><span className="block font-medium text-navy hover:text-brand">{p.full_name}</span><span className="block tabular-nums text-[11px] text-ink-400">{p.erp_supplier_id}</span></span>
                   </Link>
                 </td>
                 <td className={td}>{p.erp_instructor_level ?? p.qs_instructor_level ?? p.erp_service_category}</td>
                 <td className={td}>{p.home_segment ? SEGMENT[p.home_segment] : "—"}</td>
                 <td className={td}><Badge tone={p.approval_status === "cleared" ? "green" : p.approval_status === "in_pipeline" ? "amber" : "neutral"}>{p.approval_status === "cleared" ? "Cleared" : p.approval_status === "in_pipeline" ? "In pipeline" : p.approval_status.replace("_", " ")}</Badge></td>
-                <td className={td}>{c ? <span className="flex items-center gap-2"><span className="font-mono font-semibold" style={{ color: tierColor(c.total) }}>{num(c.total)}</span><TierBadge tier={c.tier} provisional={c.provisional} /></span> : <span className="text-ink-400">—</span>}</td>
+                <td className={td}>{c ? <span className="flex items-center gap-2"><span className="tabular-nums font-semibold" style={{ color: tierColor(c.total) }}>{num(c.total)}</span><TierBadge tier={c.tier} provisional={c.provisional} /></span> : <span className="text-ink-400">—</span>}</td>
                 <td className={td}>
-                  {hr ? (k ? <span className="font-mono text-[12.5px]">{k.rate ? `${k.rate} KWD / ${k.rate_type === "hourly" ? "hr" : k.rate_type === "daily" ? "day" : "contract"}` : "Fixed"}</span> : <span className="text-ink-400">No active contract</span>)
+                  {hr ? (k ? <span className="tabular-nums text-[12.5px]">{k.rate ? `${k.rate} KWD / ${k.rate_type === "hourly" ? "hr" : k.rate_type === "daily" ? "day" : "contract"}` : "Fixed"}</span> : <span className="text-ink-400">No active contract</span>)
                     : pl ? <Badge tone="amber">{pl.kind === "coaching" ? "Coaching Plan" : "Improvement Plan"}</Badge> : <span className="text-ink-400">—</span>}
                 </td>
               </tr>

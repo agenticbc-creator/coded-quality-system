@@ -50,7 +50,7 @@ async function Sync({ supabase, owner }: { supabase: any; owner: boolean }) {
               <span className="text-[13px] font-semibold text-navy">{label[["erpnext", "coded_app", "surveys"][i]]}</span>
               <span className={cx("h-2.5 w-2.5 rounded-full", !r ? "bg-ink-300" : r.status === "ok" ? "bg-tier1" : r.status === "warning" ? "bg-tier3" : "bg-tier4")} />
             </div>
-            <div className="mt-2 font-mono text-[22px] font-semibold text-navy">{r?.records ?? "—"}</div>
+            <div className="mt-2 tabular-nums text-[22px] font-semibold text-navy">{r?.records ?? "—"}</div>
             <div className="text-[12px] text-ink-500">records · last run {r ? ago(r.finished_at) : "never"}</div>
             {r?.message && <div className="mt-2 text-[12px] text-ink-600">{r.message}</div>}
           </Card>
@@ -64,7 +64,7 @@ async function Sync({ supabase, owner }: { supabase: any; owner: boolean }) {
       <Card pad={false} className="px-5 pb-2 pt-4">
         <Table head={["Source", "Status", "Records", "Message", "When"]}>
           {(data ?? []).map((r: any) => (
-            <tr key={r.id}><td className={td}>{r.source}</td><td className={td}><Badge tone={r.status === "ok" ? "green" : r.status === "warning" ? "amber" : "red"}>{r.status}</Badge></td><td className={`${td} font-mono`}>{r.records}</td><td className={td}>{r.message}</td><td className={td}>{fmtDateTime(r.started_at)}</td></tr>
+            <tr key={r.id}><td className={td}>{r.source}</td><td className={td}><Badge tone={r.status === "ok" ? "green" : r.status === "warning" ? "amber" : "red"}>{r.status}</Badge></td><td className={`${td} tabular-nums`}>{r.records}</td><td className={td}>{r.message}</td><td className={td}>{fmtDateTime(r.started_at)}</td></tr>
           ))}
         </Table>
       </Card>
@@ -132,7 +132,7 @@ async function Templates({ supabase }: { supabase: any }) {
                   {r.sections?.map((s: any) => (
                     <div key={s.key} className="mb-2 last:mb-0">
                       <div className="text-[11.5px] font-semibold uppercase tracking-wide text-ink-500">{s.label} · {s.items.reduce((a: number, i: any) => a + i.max, 0)}</div>
-                      {s.items.map((i: any) => <div key={i.key} className="flex justify-between gap-2 text-[12px]"><span>{i.label}</span><span className="font-mono text-ink-500">{i.max}</span></div>)}
+                      {s.items.map((i: any) => <div key={i.key} className="flex justify-between gap-2 text-[12px]"><span>{i.label}</span><span className="tabular-nums text-ink-500">{i.max}</span></div>)}
                     </div>
                   ))}
                 </div>
@@ -148,7 +148,7 @@ async function Templates({ supabase }: { supabase: any }) {
                   <Field label="Name"><input name="name" defaultValue={t.name} className={input} /></Field>
                   <Field label="Subjects scored (comma separated)"><input name="subjects" defaultValue={t.subjects.join(", ")} className={input} /></Field>
                 </div>
-                <Field label="Rubric (JSON)"><textarea name="rubric" rows={10} defaultValue={JSON.stringify(t.rubric, null, 2)} className={`${input} font-mono text-[12px]`} /></Field>
+                <Field label="Rubric (JSON)"><textarea name="rubric" rows={10} defaultValue={JSON.stringify(t.rubric, null, 2)} className={`${input} tabular-nums text-[12px]`} /></Field>
                 <label className="flex items-center gap-2 text-[12.5px]"><input type="checkbox" name="special" defaultChecked={t.is_special} /> Master class or challenge template</label>
                 <Submit size="sm">Save version {t.version + 1}</Submit>
               </ActionForm>
@@ -179,7 +179,7 @@ async function Rules({ supabase, owner }: { supabase: any; owner: boolean }) {
             {owner ? (
               <ActionForm action={settingsSet} className="mt-2 space-y-2">
                 <input type="hidden" name="key" value={s.key} />
-                <textarea name="value" rows={Math.min(14, JSON.stringify(s.value, null, 2).split("\n").length + 1)} defaultValue={JSON.stringify(s.value, null, 2)} className={`${input} font-mono text-[12px]`} />
+                <textarea name="value" rows={Math.min(14, JSON.stringify(s.value, null, 2).split("\n").length + 1)} defaultValue={JSON.stringify(s.value, null, 2)} className={`${input} tabular-nums text-[12px]`} />
                 <div className="flex items-center gap-2"><select name="status" defaultValue={s.status} className={`${input} w-auto`}><option value="from_notion">From Notion</option><option value="decided">Decided</option><option value="default">Assumption</option><option value="draft_review">Draft for review</option></select><Submit size="sm">Save</Submit></div>
               </ActionForm>
             ) : <pre className="mt-2 overflow-x-auto rounded-lg bg-canvas p-3 text-[12px]">{JSON.stringify(s.value, null, 2)}</pre>}
@@ -231,9 +231,9 @@ async function Audit({ supabase }: { supabase: any }) {
           <tr key={a.id}>
             <td className={`${td} whitespace-nowrap`}>{fmtDateTime(a.at)}</td>
             <td className={td}>{a.actor?.full_name ?? <span className="flex items-center gap-1 text-ink-500"><Icon name="settings" className="h-3.5 w-3.5" /> System</span>}</td>
-            <td className={`${td} font-mono text-[12px]`}>{a.action}</td>
+            <td className={`${td} tabular-nums text-[12px]`}>{a.action}</td>
             <td className={td}>{a.entity}</td>
-            <td className={`${td} max-w-[320px] truncate font-mono text-[11.5px] text-ink-500`}>{a.data ? JSON.stringify(a.data) : ""}</td>
+            <td className={`${td} max-w-[320px] truncate tabular-nums text-[11.5px] text-ink-500`}>{a.data ? JSON.stringify(a.data) : ""}</td>
           </tr>
         ))}
       </Table>

@@ -1,6 +1,6 @@
 import { getMe } from "@/lib/session";
 import { loadPerson } from "@/lib/person";
-import { Breakdown, FeedbackList, Hero, History, JDChecklist, Plans, Profile, Review360, Signals, Surveys, Trend } from "@/components/performance";
+import { Breakdown, FeedbackList, Hero, History, JDChecklist, Plans, Profile, Review360, Signals, Surveys, Trend, WriteBack } from "@/components/performance";
 import { Notice } from "@/components/ui";
 
 export const metadata = { title: "My dashboard" };
@@ -25,6 +25,7 @@ export default async function MyDashboard() {
           <Review360 d={d} self />
           <Surveys d={d} />
           <Profile d={d} />
+          <WriteBack d={d} />
         </div>
       </div>
       <History d={d} />

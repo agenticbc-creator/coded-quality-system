@@ -58,10 +58,10 @@ export default async function Pipeline({ params }: { params: Promise<{ id: strin
                       </div>
                       {s.done_at && <div className="text-[12px] text-ink-500">{s.status === "failed" ? "Not passed" : "Done"} by {s.by?.full_name} · {fmtDateTime(s.done_at)}</div>}
                       {s.notes && <p className="mt-1 text-[13px] text-ink-600">{s.notes}</p>}
-                      {s.data?.total !== undefined && s.step === "vetting" && <p className="mt-1 text-[12.5px]">Scorecard <b className="font-mono">{s.data.total}</b>/100 · {s.data.recommend ? "recommended" : "not recommended"}</p>}
-                      {s.data?.rate && <p className="mt-1 text-[12.5px]">Rate <b className="font-mono">{s.data.rate} KWD</b> / {s.data.rate_type === "hourly" ? "hour" : s.data.rate_type}</p>}
+                      {s.data?.total !== undefined && s.step === "vetting" && <p className="mt-1 text-[12.5px]">Scorecard <b className="tabular-nums">{s.data.total}</b>/100 · {s.data.recommend ? "recommended" : "not recommended"}</p>}
+                      {s.data?.rate && <p className="mt-1 text-[12.5px]">Rate <b className="tabular-nums">{s.data.rate} KWD</b> / {s.data.rate_type === "hourly" ? "hour" : s.data.rate_type}</p>}
                       {s.data?.erp_contract && <p className="mt-1 text-[12.5px]">ERPNext {s.data.erp_contract} · {s.data.erp_status} · signed {fmtDate(s.data.signed_at)}</p>}
-                      {s.data?.result && <p className="mt-1 text-[12.5px]">Mock class <b className="font-mono">{s.data.total}</b>/100 · {s.data.result === "not_yet" ? "Not Yet" : s.data.result}</p>}
+                      {s.data?.result && <p className="mt-1 text-[12.5px]">Mock class <b className="tabular-nums">{s.data.total}</b>/100 · {s.data.result === "not_yet" ? "Not Yet" : s.data.result}</p>}
                     </div>
                   </li>
                 );
@@ -78,7 +78,7 @@ export default async function Pipeline({ params }: { params: Promise<{ id: strin
         <div className="space-y-6">
           <Card>
             <CardTitle icon="database" sub="From the Portal v2 contractor record (ERPNext)">Candidate record</CardTitle>
-            <KV k="Supplier" v={<span className="font-mono">{p.person.erp_supplier_id}</span>} />
+            <KV k="Supplier" v={<span className="tabular-nums">{p.person.erp_supplier_id}</span>} />
             <KV k="Category" v={p.person.erp_service_category ?? "—"} />
             <KV k="ERPNext status" v={p.person.erp_contractor_status} />
             <KV k="Approval status" v={p.person.approval_status.replace("_", " ")} />
@@ -89,7 +89,7 @@ export default async function Pipeline({ params }: { params: Promise<{ id: strin
               <CardTitle icon="star" sub="CCTP 100-point rubric · written feedback within 24 hours">Mock classes</CardTitle>
               {(mocks ?? []).map((m: any) => (
                 <div key={m.id} className="mb-3 rounded-lg border border-line p-3 last:mb-0">
-                  <div className="flex items-center justify-between"><b className="text-[13px] text-navy">{m.context === "mock1" ? "Mock class 1" : "Mock class 2"}</b><span className="font-mono text-[15px] font-semibold">{m.total}</span></div>
+                  <div className="flex items-center justify-between"><b className="text-[13px] text-navy">{m.context === "mock1" ? "Mock class 1" : "Mock class 2"}</b><span className="tabular-nums text-[15px] font-semibold">{m.total}</span></div>
                   <Badge tone={m.result === "not_yet" ? "red" : "green"}>{m.result === "not_yet" ? "Not Yet" : m.result}</Badge>
                   <p className="mt-2 text-[12.5px] text-ink-600">{m.feedback}</p>
                   <div className="mt-1 text-[11.5px] text-ink-500">{m.assessor?.full_name} · {fmtDateTime(m.created_at)}</div>
