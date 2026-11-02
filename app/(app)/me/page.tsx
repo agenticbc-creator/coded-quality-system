@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getMe } from "@/lib/session";
 import { loadPerson } from "@/lib/person";
-import { Breakdown, FeedbackList, Hero, History, JDChecklist, Plans, Profile, Review360, Signals, Surveys, Trend } from "@/components/performance";
+import { Breakdown, FeedbackList, Hero, History, JDChecklist, Plans, Profile, Review360, SegmentScores, Signals, Surveys, Trend } from "@/components/performance";
 import { Icon } from "@/components/icons";
 import { cx } from "@/components/ui";
 import { fmtDate } from "@/lib/format";
@@ -51,6 +51,7 @@ export default async function MyDashboard() {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
         <div className="space-y-6">
           <Breakdown d={d} />
+          <SegmentScores d={d} />
           <div id="signals"><Signals d={d} /></div>
           <div id="feedback"><FeedbackList d={d} self /></div>
         </div>

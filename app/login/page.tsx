@@ -24,6 +24,8 @@ const GROUPS: { title: string; people: Persona[] }[] = [
     { key: "noura", name: "Noura Al-Saleh", role: "Segment owner · Pro", note: "Approvals, release queue" },
     { key: "yousef", name: "Yousef Al-Bader", role: "Segment owner · Kids & Youth", note: "Cross-segment view" },
     { key: "khalid", name: "Khalid Al-Enezi", role: "Operations · overseer", note: "Today view · record gaps" },
+    { key: "omar", name: "Omar Al-Khaldi", role: "Program coordinator · Pro", note: "Runs the cohort day to day" },
+    { key: "muna", name: "Muna Al-Fares", role: "Education coordinator · Pro", note: "Books QA · sees status only" },
   ] },
   { title: "Leadership and support", people: [
     { key: "abdulaziz", name: "Abdulaziz Al-Qattan", role: "General Manager", note: "Observer across segments" },

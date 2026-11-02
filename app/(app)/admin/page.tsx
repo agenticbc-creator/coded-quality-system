@@ -4,7 +4,8 @@ import { db } from "@/lib/supabase";
 import { Badge, Card, CardTitle, Field, Notice, PageHeader, StatusBadge, Table, cx, input, td } from "@/components/ui";
 import { ActionForm, Submit } from "@/components/forms";
 import { Icon } from "@/components/icons";
-import { personRoles, qaTemplateSave, runDailyJobs, scoringTemplateSave, settingsSet } from "@/app/actions";
+import { importContractors, importSessions, personAdd, personRoles, qaTemplateSave, runDailyJobs, schemaVersion, scoringTemplateSave, settingsSet } from "@/app/actions";
+import { hasServiceKey } from "@/lib/supabase-admin";
 import { SEGMENT, ago, fmtDateTime } from "@/lib/format";
 
 export const metadata = { title: "System" };
@@ -27,17 +28,17 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
           <Link key={k} href={`/admin?tab=${k}`} className={cx("shrink-0 rounded-lg px-3.5 py-2 text-[13.5px] font-medium", tab === k ? "bg-navy text-white" : "text-ink-600 hover:bg-white")}>{l}</Link>
         ))}
       </div>
-      {tab === "sync" && <Sync supabase={supabase} owner={owner} />}
+      {tab === "sync" && <Sync supabase={supabase} owner={owner} v={await schemaVersion()} />}
       {tab === "scoring" && <Scoring supabase={supabase} />}
       {tab === "templates" && <Templates supabase={supabase} />}
       {tab === "rules" && <Rules supabase={supabase} owner={owner} />}
-      {tab === "access" && <Access supabase={supabase} owner={owner} />}
+      {tab === "access" && <Access supabase={supabase} owner={owner} v={await schemaVersion()} />}
       {tab === "audit" && <Audit supabase={supabase} />}
     </div>
   );
 }
 
-async function Sync({ supabase, owner }: { supabase: any; owner: boolean }) {
+async function Sync({ supabase, owner, v }: { supabase: any; owner: boolean; v: number }) {
   const { data } = await supabase.from("sync_runs").select("*").order("started_at", { ascending: false }).limit(30);
   const latest = ["erpnext", "coded_app", "surveys"].map((s) => (data ?? []).find((r: any) => r.source === s));
   const label: Record<string, string> = { erpnext: "ERPNext (contractors, contracts)", coded_app: "CODED App (attendance, submissions, chat)", surveys: "Surveys (pulse, final)" };
@@ -57,7 +58,7 @@ async function Sync({ supabase, owner }: { supabase: any; owner: boolean }) {
         ))}
       </div>
       <Card>
-        <CardTitle icon="refresh" sub="Daily pull, 24/72 reminders and escalations, approval reminders after 3 working days, visit reminders, pulse triggers and JD checklist ticks. Schedule it daily once the system is in Portal v2.">Daily jobs</CardTitle>
+        <CardTitle icon="refresh" sub="Daily pull, 24/72 reminders and escalations, approval reminders after 3 working days, visit and plan reminders, pulse triggers and JD checklist ticks. After migration 0009 the database runs them every day at 06:00 Kuwait; notification emails follow at 07:00 once email is set up.">Daily jobs</CardTitle>
         <Notice tone="brand">In this standalone build ERPNext and the CODED App are represented by sample tables. The daily pull records a sync run against them; Portal v2 replaces it with the real read.</Notice>
         {owner && <ActionForm action={runDailyJobs} className="mt-4"><Submit icon="refresh">Run daily jobs now</Submit></ActionForm>}
       </Card>
@@ -68,6 +69,30 @@ async function Sync({ supabase, owner }: { supabase: any; owner: boolean }) {
           ))}
         </Table>
       </Card>
+      {owner && v >= 10 && (
+        <Card>
+          <CardTitle icon="database" sub="Until Portal v2 feeds this system, records can come in as CSV exports. Use this only on a database CODED has agreed may hold real records.">Import from CSV</CardTitle>
+          <Notice tone="amber" title="Real people's data">Today this database holds sample data only. Importing real contractors or timetables is a decision for CODED (hosting and access), not a technical step.</Notice>
+          <div className="mt-4 grid gap-5 lg:grid-cols-2">
+            <ActionForm action={importContractors} className="space-y-2">
+              <div className="text-[14px] font-bold text-ink">Contractors (ERPNext Supplier export)</div>
+              <p className="label-mono">erp_supplier_id, full_name, email, arabic_name, home_segment, service_category, instructor_level, contractor_status</p>
+              <input type="file" name="file" accept=".csv,text/csv" className={input} />
+              <textarea name="csv" rows={3} className={input} placeholder={"erp_supplier_id,full_name,email,home_segment\nSUP-0001,First Last,first@example.com,pro"} />
+              <p className="text-[12px] text-ink-500">Matched on erp_supplier_id: new rows are added as instructors, existing ones are updated. Up to 2,000 rows.</p>
+              <Submit size="sm" variant="secondary" icon="upload">Import contractors</Submit>
+            </ActionForm>
+            <ActionForm action={importSessions} className="space-y-2">
+              <div className="text-[14px] font-bold text-ink">Timetable (CODED App sessions)</div>
+              <p className="label-mono">classroom_id, starts_at, topic, attendance_logged_at</p>
+              <input type="file" name="file" accept=".csv,text/csv" className={input} />
+              <textarea name="csv" rows={3} className={input} placeholder={"classroom_id,starts_at,topic\n<classroom id>,2026-11-08T09:00:00+03:00,Intro to APIs"} />
+              <p className="text-[12px] text-ink-500">Sessions already in the timetable are skipped. Visit booking uses the timetable to keep class visits on teaching days.</p>
+              <Submit size="sm" variant="secondary" icon="upload">Import sessions</Submit>
+            </ActionForm>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
@@ -190,11 +215,35 @@ async function Rules({ supabase, owner }: { supabase: any; owner: boolean }) {
   );
 }
 
-async function Access({ supabase, owner }: { supabase: any; owner: boolean }) {
+async function Access({ supabase, owner, v }: { supabase: any; owner: boolean; v: number }) {
   const { data } = await supabase.from("people").select("*").order("full_name");
   return (
     <div className="space-y-3">
       <Notice tone="brand">Roles decide what each person sees (row-level security in the database). Changes are logged.</Notice>
+      {owner && v >= 10 && (
+        <Card>
+          <CardTitle icon="user-plus" sub="Adds the record and, when the service key is set, emails an invite. On first sign-in the account links to this record by email.">Add a person</CardTitle>
+          <ActionForm action={personAdd} resetOnSuccess className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Full name"><input name="full_name" required className={input} /></Field>
+              <Field label="Arabic name (optional)"><input name="arabic_name" dir="rtl" className={input} /></Field>
+              <Field label="Work email"><input name="email" type="email" required className={input} /></Field>
+              <Field label="Home segment"><select name="segment" className={input}><option value="">None</option>{Object.entries(SEGMENT).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Field>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {ROLES.map((r) => <label key={r} className="flex items-center gap-1.5 rounded-full bg-canvas px-2.5 py-1 text-[12.5px] ring-1 ring-line"><input type="checkbox" name="roles" value={r} /> {r.replace(/_/g, " ")}</label>)}
+            </div>
+            <div className="flex flex-wrap items-center gap-3 text-[13px]">
+              <span className="text-ink-500">Owns segments:</span>
+              {Object.entries(SEGMENT).map(([k, l]) => <label key={k} className="flex items-center gap-1"><input type="checkbox" name="owned" value={k} /> {l}</label>)}
+              <label className="flex items-center gap-1.5"><input type="checkbox" name="full_timer" /> Full-timer</label>
+              <label className="flex items-center gap-1.5"><input type="checkbox" name="invite" defaultChecked /> Send the invite email</label>
+            </div>
+            {!hasServiceKey() && <p className="text-[12.5px] text-tier3">Invite emails are off until SUPABASE_SERVICE_ROLE_KEY is set in Vercel. The record is still added; send the invite from Supabase for now.</p>}
+            <Submit size="sm" icon="plus">Add person</Submit>
+          </ActionForm>
+        </Card>
+      )}
       {(data ?? []).map((p: any) => (
         <Card key={p.id}>
           <ActionForm action={personRoles}>

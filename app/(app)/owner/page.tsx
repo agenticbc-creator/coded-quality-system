@@ -3,6 +3,7 @@ import { getMe } from "@/lib/session";
 import { db } from "@/lib/supabase";
 import { Badge, Card, CardTitle, Empty, LinkButton, PageHeader, ScoreBar, Stat, TierBadge, cx, tierColor } from "@/components/ui";
 import { SignalGrid } from "@/components/performance";
+import { signalLevels } from "@/lib/person";
 import { Icon } from "@/components/icons";
 import { SEGMENT, STEP, TIER, currentPeriod, fmtDate, fmtDateTime, num, periodLabel, visitLabel } from "@/lib/format";
 
@@ -31,6 +32,7 @@ export default async function OwnerHome() {
   const unassigned = (visits ?? []).filter((v: any) => v.status === "planned" && !v.assignee_id && mine.some((c: any) => c.id === v.cohort_id));
   const upcoming = (visits ?? []).filter((v: any) => ["invited", "accepted"].includes(v.status) && new Date(v.scheduled_for) > new Date()).slice(0, 5);
   const tiers = [1, 2, 3, 4].map((t) => myComps.filter((c: any) => c.tier === t).length);
+  const lv = await signalLevels();
   const signals = await Promise.all(live.flatMap((c: any) => c.classrooms).map(async (cl: any) => ({ cl, data: (await supabase.rpc("live_signals", { p_classroom: cl.id })).data })));
 
   return (
@@ -94,7 +96,7 @@ export default async function OwnerHome() {
                     );
                   })}
                 </div>
-                <div className="space-y-5">{cls.map(({ cl, data }) => <SignalGrid key={cl.id} title={cl.name} data={data} />)}</div>
+                <div className="space-y-5">{cls.map(({ cl, data }) => <SignalGrid key={cl.id} title={cl.name} data={data} levels={lv.levels} draft={lv.draft} />)}</div>
               </Card>
             );
           })}

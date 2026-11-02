@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { db } from "@/lib/supabase";
+import { adminDb, hasServiceKey } from "@/lib/supabase-admin";
 import type { ActionResult } from "@/components/forms";
 
 const s = (f: FormData, k: string) => {
@@ -41,7 +43,8 @@ export async function signIn(_: ActionResult, f: FormData): Promise<ActionResult
   const password = persona ? process.env.DEMO_PASSWORD : s(f, "password");
   if (!email || !password) return { ok: false, error: persona ? "Demo sign-in is turned off on this deployment." : "Enter your email and password." };
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: persona && ["muna", "omar"].includes(persona) && /invalid/i.test(error.message)
+    ? "The coordinator sample people are not loaded on this database yet (supabase/seed/coordinators_seed.sql)." : error.message };
   redirect("/");
 }
 
@@ -177,7 +180,7 @@ export async function visitRespond(_: ActionResult, f: FormData) {
   const when = s(f, "date") && s(f, "time") ? `${s(f, "date")}T${s(f, "time")}:00+03:00` : null;
   const action = s(f, "action")!;
   return call("visit_respond", { p_visit: id, p_action: action, p_when: when, p_reason: s(f, "reason") }, [`/visits/${id}`, "/visits"],
-    { accept: "Accepted.", reschedule: "Rescheduled. The scheduler has been notified.", decline: "Declined. The visit is back in the scheduler's queue.", cancel: "Visit cancelled." }[action] ?? "Updated.");
+    { accept: "Accepted.", reschedule: "Rescheduled. The scheduler has been notified.", decline: "Declined. It goes to the next free observer, or back to the scheduler if there is none.", cancel: "Visit cancelled." }[action] ?? "Updated.");
 }
 export async function visitSubmit(_: ActionResult, f: FormData): Promise<ActionResult> {
   const id = s(f, "visit")!;
@@ -204,7 +207,7 @@ export async function visitRelease(_: ActionResult, f: FormData) {
 export async function feedbackLog(_: ActionResult, f: FormData) {
   const sev = s(f, "severity");
   return call("feedback_log", { p_subject: s(f, "subject"), p_cohort: s(f, "cohort"), p_classroom: s(f, "classroom"), p_type: s(f, "type"),
-    p_severity: sev, p_body: s(f, "body"), p_red_flag_reason: s(f, "red_flag_reason") }, ["/feedback/release"],
+    p_severity: sev, p_body: s(f, "body"), p_red_flag_reason: s(f, "red_flag_reason"), p_attachment: s(f, "attachment") }, ["/feedback/release", "/feedback/new"],
     sev === "red_flag" ? "Logged. The segment owner was alerted for a same-day review." : "Logged privately. It reaches the educator only if the segment owner releases it.");
 }
 export async function feedbackReview(_: ActionResult, f: FormData) {
@@ -346,4 +349,94 @@ export async function masterClassSchedule(_: ActionResult, f: FormData) {
     p_cohort: cl?.cohort_id ?? null, p_classroom: s(f, "classroom"), p_kind: s(f, "kind"), p_title: s(f, "title"), p_instructor: s(f, "instructor"),
     p_when: when ? new Date(when + "+03:00").toISOString() : null, p_assignee: s(f, "assignee"),
   }, ["/master-classes", "/visits", "/calendar"], "Scheduled. The instructor and the evaluator have been notified.");
+}
+
+// ── Migration 0010 ────────────────────────────────────────
+// Cohort sign-offs (C3): the segment owner approves the staffing and the QA plan before Day 1.
+export async function cohortApprove(_: ActionResult, f: FormData) {
+  const id = s(f, "cohort")!;
+  const what = s(f, "what")!;
+  return call("cohort_approve", { p_cohort: id, p_what: what }, [`/cohorts/${id}`], what === "staffing" ? "Staffing approved." : "QA plan approved.");
+}
+export async function cohortScore(_: ActionResult, f: FormData) {
+  const id = s(f, "cohort")!;
+  const r = await call("cohort_score", { p_cohort: id, p_period: s(f, "period") }, [`/cohorts/${id}`, "/scores"], "");
+  return r.ok ? { ...r, message: `Scored ${(r.data as any)?.people ?? 0} people on this cohort.` } : r;
+}
+// Plan reviews (P3): every plan ends with an outcome.
+export async function planReview(_: ActionResult, f: FormData) {
+  const person = s(f, "person");
+  const outcome = s(f, "outcome");
+  return call("plan_review", { p_plan: s(f, "plan"), p_outcome: outcome, p_note: s(f, "note"), p_new_due: s(f, "due") },
+    [`/people/${person}`, "/me", "/owner"],
+    { met: "Recorded: goals met. The plan is closed.", extended: "Plan extended to the new date.", escalated: "Moved to an Improvement Plan.", hr_review: "Recorded. HR has been asked to step in." }[outcome ?? ""] ?? "Recorded.");
+}
+// Authors correct their own note until it is reviewed.
+export async function feedbackUpdateOwn(_: ActionResult, f: FormData) {
+  return call("feedback_update_own", { p_id: s(f, "id"), p_type: s(f, "type"), p_severity: s(f, "severity"), p_body: s(f, "body"), p_red_flag_reason: s(f, "red_flag_reason") },
+    ["/feedback/new"], "Note updated.");
+}
+// Evidence: the browser uploads the file to private storage, then records it on the visit.
+export async function visitEvidenceAdd(path: string, visit: string, kind: string, label: string | null): Promise<ActionResult> {
+  return call("visit_evidence_add", { p_visit: visit, p_path: path, p_kind: kind, p_label: label }, [`/visits/${visit}`], "Evidence attached.");
+}
+
+// People (system owner): a record first, then an invite email when the service key is set.
+export async function personAdd(_: ActionResult, f: FormData): Promise<ActionResult> {
+  const supabase = await db();
+  const roles = f.getAll("roles").map(String).filter(Boolean);
+  const owned = f.getAll("owned").map(String).filter(Boolean);
+  const email = (s(f, "email") ?? "").trim().toLowerCase();
+  const { error } = await supabase.rpc("person_add", { p_full_name: s(f, "full_name"), p_email: email, p_roles: roles, p_home_segment: s(f, "segment"),
+    p_owned: owned, p_full_timer: f.get("full_timer") === "on", p_arabic: s(f, "arabic_name") });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/admin");
+  if (f.get("invite") !== "on") return { ok: true, message: "Record added. They can sign in once they have an account with this email." };
+  if (!hasServiceKey()) return { ok: true, message: "Record added. The invite email is off until SUPABASE_SERVICE_ROLE_KEY is set in Vercel; send the invite from Supabase (Authentication > Users > Invite) for now." };
+  const base = (process.env.APP_URL || "https://coded-quality-system.vercel.app").replace(/\/$/, "");
+  const { error: inv } = await adminDb().auth.admin.inviteUserByEmail(email, { redirectTo: `${base}/login` });
+  return inv ? { ok: true, message: `Record added, but the invite failed: ${inv.message}` } : { ok: true, message: "Record added and the invite email is on its way." };
+}
+
+/** Minimal CSV reader: first row is the header; quoted fields and commas inside quotes are handled. */
+function parseCsv(text: string): Record<string, string>[] {
+  const rows: string[][] = [];
+  let row: string[] = [], cell = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"' && text[i + 1] === '"') { cell += '"'; i++; } else if (c === '"') q = false; else cell += c; }
+    else if (c === '"') q = true;
+    else if (c === ",") { row.push(cell); cell = ""; }
+    else if (c === "\n" || c === "\r") { if (c === "\r" && text[i + 1] === "\n") i++; row.push(cell); rows.push(row); row = []; cell = ""; }
+    else cell += c;
+  }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  const [head, ...body] = rows.filter((r) => r.some((x) => x.trim()));
+  if (!head) return [];
+  const keys = head.map((h) => h.trim().toLowerCase());
+  return body.map((r) => Object.fromEntries(keys.map((k, i) => [k, (r[i] ?? "").trim()])));
+}
+async function csvFrom(f: FormData): Promise<string> {
+  const file = f.get("file");
+  if (file && typeof file === "object" && "text" in file && (file as File).size > 0) return (file as File).text();
+  return String(f.get("csv") ?? "");
+}
+export async function importContractors(_: ActionResult, f: FormData) {
+  const rows = parseCsv(await csvFrom(f));
+  if (!rows.length) return { ok: false, error: "No rows found. The first line must be the header." };
+  const r = await call("import_contractors", { p_rows: rows }, ["/admin", "/people"], "");
+  return r.ok ? { ...r, message: `Imported: ${(r.data as any)?.new ?? 0} new, ${(r.data as any)?.updated ?? 0} updated.` } : r;
+}
+export async function importSessions(_: ActionResult, f: FormData) {
+  const rows = parseCsv(await csvFrom(f));
+  if (!rows.length) return { ok: false, error: "No rows found. The first line must be the header." };
+  const r = await call("import_sessions", { p_rows: rows }, ["/admin", "/calendar"], "");
+  return r.ok ? { ...r, message: `Imported ${(r.data as any)?.new ?? 0} sessions (${(r.data as any)?.skipped ?? 0} already there).` } : r;
+}
+
+// Interface language (the shell only for now; see lib/i18n.ts).
+export async function setLang(f: FormData) {
+  const store = await cookies();
+  store.set("lang", s(f, "lang") === "ar" ? "ar" : "en", { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
+  revalidatePath("/", "layout");
 }

@@ -26,7 +26,12 @@ export const getMe = cache(async (): Promise<Person> => {
   const supabase = await db();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) redirect("/login");
-  const { data } = await supabase.from("people").select("*").eq("auth_user_id", auth.user.id).maybeSingle();
+  let { data } = await supabase.from("people").select("*").eq("auth_user_id", auth.user.id).maybeSingle();
+  if (!data) {
+    // First sign-in of someone the system owner added: link the record that has this (confirmed) email. Needs migration 0010.
+    const { data: claimed } = await supabase.rpc("claim_my_record");
+    if (claimed) ({ data } = await supabase.from("people").select("*").eq("id", claimed).maybeSingle());
+  }
   if (!data) redirect("/login?error=no-profile");
   return data as Person;
 });
@@ -48,6 +53,7 @@ export function navFor(me: Person): { section: string; items: NavItem[] }[] {
   const out: { section: string; items: NavItem[] }[] = [];
   const home: NavItem[] = [];
   if (isEducator(me)) home.push({ href: "/me", label: "My dashboard", icon: "home" });
+  if (has(me, "lead_instructor")) home.push({ href: "/team", label: "My team", icon: "users" });
   if (has(me, "cctp_candidate") && !isEducator(me)) home.push({ href: "/cctp", label: "My CCTP path", icon: "award" });
   if (isOwner(me)) home.push({ href: "/owner", label: "Segment overview", icon: "grid" });
   if (isEducation(me) && !isOwner(me)) home.push({ href: "/education", label: "Education home", icon: "compass" });

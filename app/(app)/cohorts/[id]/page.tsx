@@ -6,20 +6,23 @@ import { Avatar, Badge, Card, CardTitle, Field, KV, LinkButton, Notice, PageHead
 import { ActionForm, Disclosure, Submit } from "@/components/forms";
 import { Icon } from "@/components/icons";
 import { SignalGrid } from "@/components/performance";
-import { classroomAdd, classroomAssign, classroomReady, classroomUnassign, cohortAttachContent, cohortBackup, cohortClose, cohortGoLive, cohortRole, qaPlanGenerate } from "@/app/actions";
-import { SEGMENT, fmtDate, fmtDay } from "@/lib/format";
+import { signalLevels } from "@/lib/person";
+import { classroomAdd, classroomAssign, classroomReady, classroomUnassign, cohortAttachContent, cohortBackup, cohortApprove, cohortClose, cohortGoLive, cohortRole, cohortScore, qaPlanGenerate, schemaVersion } from "@/app/actions";
+import { SEGMENT, currentPeriod, fmtDate, fmtDateTime, fmtDay, periodLabel } from "@/lib/format";
 
 export default async function CohortPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const me = await getMe();
   const supabase = await db();
-  const [{ data: c }, { data: people }, { data: content }, { data: visits }, { data: contracts }, readiness] = await Promise.all([
+  const [{ data: c }, { data: people }, { data: content }, { data: visits }, { data: contracts }, readiness, v, lv] = await Promise.all([
     supabase.from("cohorts").select("*, program:programs(*), content:content_items(id, title, approved_version), backup:people!cohorts_backup_instructor_id_fkey(full_name), classrooms(*, classroom_staff(role, is_lead, person:people(id, full_name, approval_status))), cohort_roles(role, person:people(id, full_name, roles))").eq("id", id).maybeSingle(),
     supabase.from("people").select("id, full_name, roles, approval_status, erp_supplier_id").order("full_name"),
     supabase.from("content_items").select("id, title, approved_version, program_id").not("approved_version", "is", null),
     supabase.from("visits").select("*, assignee:people!visits_assignee_id_fkey(full_name)").eq("cohort_id", id).order("scheduled_for"),
     supabase.from("erp_contracts").select("person_id, status"),
     supabase.rpc("cohort_readiness", { p_cohort: id }),
+    schemaVersion(),
+    signalLevels(),
   ]);
   if (!c) notFound();
   const owner = me.roles.includes("segment_owner") && me.owned_segments.includes(c.program.segment_id);
@@ -34,6 +37,13 @@ export default async function CohortPage({ params }: { params: Promise<{ id: str
   const weeks = Array.from(new Set((visits ?? []).map((v: any) => v.week_no).filter(Boolean))).sort((a: any, b: any) => a - b) as number[];
   const signals = c.status === "live" ? await Promise.all(classrooms.map(async (cl: any) => ({ cl, data: (await supabase.rpc("live_signals", { p_classroom: cl.id })).data }))) : [];
   const hid = <input type="hidden" name="cohort" value={id} />;
+  const nameOf = (pid: string | null) => (people ?? []).find((p: any) => p.id === pid)?.full_name ?? "";
+  const scorer = owner || has(me, "education_principal");
+  const period = currentPeriod();
+  const signOffs = [
+    { what: "staffing", label: "Staffing", sub: "Every classroom's instructors and TAs", at: c.staffing_approved_at, by: c.staffing_approved_by },
+    { what: "qa_plan", label: "QA plan", sub: "Education, operations and shadowing visits, by week", at: c.qa_plan_approved_at, by: c.qa_plan_approved_by },
+  ];
 
   return (
     <div>
@@ -52,6 +62,24 @@ export default async function CohortPage({ params }: { params: Promise<{ id: str
             {r.warnings.map((w) => <div key={w} className="flex items-start gap-2 rounded-lg bg-tier3-bg px-3 py-2 text-[13.5px] text-[#6B4300]"><Icon name="alert" className="mt-0.5 h-3.5 w-3.5 shrink-0" />{w}</div>)}
             {r.ok && !r.warnings.length && <div className="flex items-center gap-2 rounded-lg bg-tier1-bg px-3 py-2 text-[13.5px] text-[#0A5A3E]"><Icon name="check" className="h-3.5 w-3.5" />Everything is in place.</div>}
           </div>
+          {v >= 10 && (
+            <div className="mt-4 grid gap-3 border-t border-line pt-4 sm:grid-cols-2">
+              {signOffs.map((s) => (
+                <div key={s.what} className="flex items-start justify-between gap-3 rounded-xl border border-line p-3">
+                  <div>
+                    <div className="text-[14px] font-bold text-ink">{s.label} sign-off</div>
+                    <div className="text-[12.5px] text-ink-600">{s.at ? `Approved by ${nameOf(s.by) || "the segment owner"} · ${fmtDateTime(s.at)}` : s.sub}</div>
+                  </div>
+                  {s.at ? <Badge tone="green">Approved</Badge> : owner ? (
+                    <ActionForm action={cohortApprove}>{hid}<input type="hidden" name="what" value={s.what} /><Submit size="sm" variant="secondary" icon="check">Approve</Submit></ActionForm>
+                  ) : <Badge tone="amber">Waiting for the segment owner</Badge>}
+                </div>
+              ))}
+              <p className="text-[12.5px] text-ink-600 sm:col-span-2">A change to the team or the QA plan before Day 1 asks for the sign-off again.
+                {(owner || has(me, "education_coordinator")) && <> <Link href={`/visits/new?cohort=${id}&focus=alignment`} className="font-semibold text-brand">Book the alignment visit</Link> before Day 1.</>}
+              </p>
+            </div>
+          )}
           {owner && <ActionForm action={cohortGoLive} className="mt-4">{hid}<Submit icon="arrow" variant={r.ok ? "primary" : "secondary"}>Start the cohort</Submit></ActionForm>}
         </Card>
       )}
@@ -154,7 +182,7 @@ export default async function CohortPage({ params }: { params: Promise<{ id: str
           {signals.length > 0 && (
             <Card>
               <CardTitle icon="sun" sub="CODED App, per classroom">Live signals</CardTitle>
-              <div className="space-y-5">{signals.map(({ cl, data }) => <SignalGrid key={cl.id} title={cl.name} data={data} />)}</div>
+              <div className="space-y-5">{signals.map(({ cl, data }) => <SignalGrid key={cl.id} title={cl.name} data={data} levels={lv.levels} draft={lv.draft} />)}</div>
             </Card>
           )}
         </div>
@@ -203,6 +231,17 @@ export default async function CohortPage({ params }: { params: Promise<{ id: str
               <ActionForm action={cohortClose} className="space-y-2">{hid}
                 <Field label="Final report"><textarea name="report" rows={3} className={input} /></Field>
                 <Submit size="sm" variant="secondary">Close and open 360° reviews</Submit>
+              </ActionForm>
+            </Card>
+          )}
+          {scorer && v >= 10 && c.status !== "setup" && (
+            <Card>
+              <CardTitle icon="chart" sub="Recomputes the composite for everyone teaching on this cohort, from released visits only">Score this cohort</CardTitle>
+              <ActionForm action={cohortScore} className="flex flex-wrap items-end gap-2">{hid}
+                <Field label="Quarter"><select name="period" defaultValue={period} className={cx(input, "w-auto")}>
+                  {[0, 1].map((k) => { const [y, q] = period.split("-Q").map(Number); const qq = q - k > 0 ? q - k : 4; const yy = q - k > 0 ? y : y - 1; const pv = `${yy}-Q${qq}`; return <option key={pv} value={pv}>{periodLabel(pv)}</option>; })}
+                </select></Field>
+                <Submit size="sm" variant="secondary" icon="refresh">Score the team</Submit>
               </ActionForm>
             </Card>
           )}

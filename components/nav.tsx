@@ -43,7 +43,7 @@ export function MobileNav({ children }: { children: React.ReactNode }) {
       {open && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-navy-950/50" onClick={() => setOpen(false)} />
-          <div className="absolute inset-y-0 left-0 w-72 overflow-y-auto bg-chrome p-4 shadow-2xl">{children}</div>
+          <div className="absolute inset-y-0 start-0 w-72 overflow-y-auto bg-chrome p-4 shadow-2xl">{children}</div>
         </div>
       )}
     </>

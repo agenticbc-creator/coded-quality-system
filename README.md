@@ -74,6 +74,33 @@ per-person release (`visit_release(..., p_people)`), coordinator booking, and sc
 pg_cron at 06:00 Kuwait time. The release queue switches to one block per person by itself once
 `settings.schema_version` is 9. Also turn off **Allow new users to sign up** in Supabase Auth.
 
+## Second round (3 Nov 2026)
+
+**Database: apply `supabase/migrations/0010_signoffs_reviews_evidence.sql`** after 0009 (SQL editor, once; it is
+safe to run again). It adds the segment owner's sign-off of staffing and the QA plan (both block go-live; a team or
+plan change before Day 1 asks again), an alignment-visit warning, plan reviews with an outcome (met, extended,
+Improvement Plan, HR), decline hand-over to the next free observer, education class visits only on teaching days,
+this cohort's One Thing first and live signals in the pre-visit context, senior instructors seeing scores only once
+released, private photo and voice evidence (bucket `evidence`), author edits of unreviewed notes, per-segment
+results, batch scoring of a cohort, the full ERPNext contract status chain, `person_add` with first-sign-in linking
+(`claim_my_record`), CSV imports for the system owner, and draft settings for signal levels, a scoring guide and
+Kids age-bracket templates (all marked draft for Education). The screens switch these on by themselves once
+`settings.schema_version` is 10.
+
+Demo coordinators: `supabase/seed/coordinators_seed.sql` (same `seed.demo_password` step as the demo seed) adds
+Muna (Education Coordinator) and Omar (Program Coordinator) to the sign-in page.
+
+Server-only settings in Vercel (each feature stays off until its key is set): `SUPABASE_SERVICE_ROLE_KEY`
+(invite emails, daily email run), `CRON_SECRET` (protects `/api/cron/daily`, scheduled in `vercel.json` for
+07:00 Kuwait), `RESEND_API_KEY` and `EMAIL_FROM` (notification email), `APP_URL`.
+
+Tests: `npm run test:db` builds a throwaway local Postgres database the way the hosted one was built
+(0001–0008, demo seeds, 0009, 0010) and runs `supabase/tests/access.sql` (44 checks on who sees and does what).
+It needs a local Postgres and never touches the hosted project.
+
+The Arabic toggle in the top bar switches the menus and the top bar to Arabic (right to left); pages stay in English
+until the wording is reviewed.
+
 ## Run it
 
 ```bash

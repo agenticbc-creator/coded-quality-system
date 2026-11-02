@@ -4,7 +4,7 @@ import { Icon } from "./icons";
 import { ActionForm, Submit } from "./forms";
 import { feedbackAck, jdConfirm } from "@/app/actions";
 import { ACC_PART, CHANNEL, COMPONENT, SEGMENT, TIER, ago, fmtDate, fmtDay, num, periodLabel } from "@/lib/format";
-import type { PersonData } from "@/lib/person";
+import type { PersonData, SignalLevels } from "@/lib/person";
 
 /* ── Where do I stand ─────────────────────────────────────── */
 export function Hero({ d, self }: { d: PersonData; self: boolean }) {
@@ -139,32 +139,34 @@ export function Signals({ d }: { d: PersonData }) {
     <Card>
       <CardTitle icon="sun" sub="Pulled from the CODED App daily — fix things in week 2, not at quarter close.">Live signals</CardTitle>
       <div className="space-y-5">
-        {d.signals.map(({ classroom, data, role }) => <SignalGrid key={classroom.id} title={`${classroom.cohort.name} · ${classroom.name}`} data={data} role={role} />)}
+        {d.signals.map(({ classroom, data, role }) => <SignalGrid key={classroom.id} title={`${classroom.cohort.name} · ${classroom.name}`} data={data} role={role} levels={d.levels} draft={d.levelsDraft} />)}
       </div>
     </Card>
   );
 }
 
-export function SignalGrid({ title, data, role }: { title: string; data: any; role?: string }) {
+export function SignalGrid({ title, data, role, levels, draft = true }: { title: string; data: any; role?: string; levels?: SignalLevels | null; draft?: boolean }) {
   if (!data) return null;
   const a = data.alerts ?? {};
   // Three levels instead of "any miss is red": on track (quiet), watch (amber), act now (red).
-  // The thresholds are examples until Education sets them per signal.
+  // "Act now" levels come from settings.signal_thresholds (migration 0010); the numbers below are the fallback examples.
+  const attAct = levels?.attendance_on_time?.act_below ?? 85, backlogAct = levels?.ungraded_backlog?.act_from ?? 5;
+  const doneAct = levels?.completion?.act_below ?? 50, pulseAct = levels?.pulse?.act_below ?? 3;
   type Lv = "ok" | "watch" | "act";
   const late = data.late_attendance?.length ?? 0;
   const att = Number(data.attendance_on_time ?? 100);
   const backlog = Number(data.ungraded_backlog ?? 0);
   const done = Number(data.completion_this_week ?? 100);
   const items: { label: string; value: string; level: Lv; hint: string }[] = [
-    { label: "Attendance logged on time", value: `${data.attendance_on_time ?? "—"}%`, level: att < 85 ? "act" : late > 0 ? "watch" : "ok", hint: late ? `${late} ${late === 1 ? "session" : "sessions"} not logged after 24h` : "All sessions within 24h" },
-    { label: "Ungraded over 72h", value: String(backlog), level: backlog >= 5 ? "act" : backlog > 0 ? "watch" : "ok", hint: data.grading_hours ? `Average turnaround ${data.grading_hours}h` : "" },
+    { label: "Attendance logged on time", value: `${data.attendance_on_time ?? "—"}%`, level: att < attAct ? "act" : late > 0 ? "watch" : "ok", hint: late ? `${late} ${late === 1 ? "session" : "sessions"} not logged after 24h` : "All sessions within 24h" },
+    { label: "Ungraded over 72h", value: String(backlog), level: backlog >= backlogAct ? "act" : backlog > 0 ? "watch" : "ok", hint: data.grading_hours ? `Average turnaround ${data.grading_hours}h` : "" },
   ];
   if (!data.ops_view) {
     items.push(
-      { label: "Task completion", value: `${data.completion_this_week ?? "—"}%`, level: a.completion ? (done < 50 ? "act" : "watch") : "ok", hint: data.completion_last_week !== null && data.completion_last_week !== undefined ? `Last week ${data.completion_last_week}%` : "" },
+      { label: "Task completion", value: `${data.completion_this_week ?? "—"}%`, level: a.completion ? (done < doneAct ? "act" : "watch") : "ok", hint: data.completion_last_week !== null && data.completion_last_week !== undefined ? `Last week ${data.completion_last_week}%` : "" },
       { label: "Trainee attendance", value: `${data.trainee_attendance ?? "—"}%`, level: data.absent_twice?.length ? "act" : a.trainee_attendance ? "watch" : "ok", hint: data.absent_twice?.length ? `${data.absent_twice.map((x: any) => x.trainee).join(", ")} absent twice in a row` : "No trainee absent twice in a row" },
       { label: "Missed tasks", value: `${data.missed_pct ?? "—"}%`, level: a.missed ? "watch" : "ok", hint: data.repeat_missers?.length ? `${data.repeat_missers.map((x: any) => x.trainee).join(", ")} missed 2+` : "No repeat missers" },
-      { label: "Mid-program pulse", value: data.pulse ? `${data.pulse.instructor_item}/5` : "—", level: data.pulse && Number(data.pulse.instructor_item) < 3 ? "act" : a.pulse ? "watch" : "ok", hint: data.pulse ? `${data.pulse.too_fast_pct}% say "too fast"` : "Not run yet" },
+      { label: "Mid-program pulse", value: data.pulse ? `${data.pulse.instructor_item}/5` : "—", level: data.pulse && Number(data.pulse.instructor_item) < pulseAct ? "act" : a.pulse ? "watch" : "ok", hint: data.pulse ? `${data.pulse.too_fast_pct}% say "too fast"` : "Not run yet" },
     );
   }
   const LV = { ok: { box: "border-line bg-white", text: "text-ink", tag: "On track", tagc: "text-ink-500" }, watch: { box: "border-[#F1D9A8] bg-tier3-bg", text: "text-tier3", tag: "Watch", tagc: "text-tier3" }, act: { box: "border-[#F3C3C7] bg-tier4-bg", text: "text-tier4", tag: "Act now", tagc: "text-tier4" } };
@@ -184,7 +186,7 @@ export function SignalGrid({ title, data, role }: { title: string; data: any; ro
           </div>
         ))}
       </div>
-      <p className="mt-2 text-[12px] text-ink-500">Levels are examples until Education sets a threshold for each signal.</p>
+      {draft && <p className="mt-2 text-[12px] text-ink-500">Levels are examples until Education sets a threshold for each signal.</p>}
       {data.backlog?.length > 0 && (
         <details className="mt-2 text-[12.5px] text-ink-600">
           <summary className="cursor-pointer text-brand">Show {data.backlog.length} ungraded {data.backlog.length === 1 ? "submission" : "submissions"}</summary>
@@ -284,6 +286,7 @@ export function JDChecklist({ d, canConfirm }: { d: PersonData; canConfirm: bool
   return (
     <Card>
       <CardTitle icon="check" sub="Ticked from evidence where the system has it, confirmed by the lead where it does not. Feeds accountability.">Job description checklist</CardTitle>
+      {d.jdItems.some((i) => i.status === "draft_review") && <p className="-mt-1 mb-3 text-[12.5px] text-ink-600"><Badge tone="draft">draft</Badge> Some items are a draft until Education signs off the job description.</p>}
       <div className="space-y-5">
         {cohorts.map((co: any) => {
           const items = d.jdItems.filter((i) => i.role === co.role);
@@ -305,7 +308,6 @@ export function JDChecklist({ d, canConfirm }: { d: PersonData; canConfirm: bool
                           <Icon name={t?.done ? "check" : t ? "x" : "clock"} className="h-3 w-3" strokeWidth={2.5} />
                         </span>
                         {i.label}
-                        {i.status === "draft_review" && <Badge tone="draft">draft</Badge>}
                       </span>
                       <span className="flex shrink-0 items-center gap-2 text-[12px] text-ink-500">
                         {t ? (t.source === "auto" ? "from evidence" : "confirmed by lead") : i.evidence === "lead" ? "lead to confirm" : "waiting for evidence"}
@@ -406,9 +408,18 @@ export function Review360({ d, self }: { d: PersonData; self: boolean }) {
 }
 
 /* ── Plans ────────────────────────────────────────────────── */
+const OUTCOME: Record<string, string> = { met: "Goals met", extended: "Extended", escalated: "Moved to an Improvement Plan", hr_review: "Passed to HR" };
+
 export function Plans({ d }: { d: PersonData }) {
   const open = d.plans.filter((p) => p.status === "open");
-  if (!open.length) return null;
+  const reviewed = d.plans.filter((p) => p.reviewed_at);
+  if (!open.length && !reviewed.length) return null;
+  if (!open.length) return (
+    <Card>
+      <CardTitle icon="flag" sub="Each plan ends with a review and a recorded outcome">Past plans</CardTitle>
+      <PlanHistory plans={reviewed} />
+    </Card>
+  );
   return (
     <Card className="border-[#F5DDAF]">
       <CardTitle icon="flag" sub="Goals and due dates agreed with your segment owner">{open[0].kind === "coaching" ? "Coaching Plan" : "Formal Improvement Plan"}</CardTitle>
@@ -424,8 +435,42 @@ export function Plans({ d }: { d: PersonData }) {
               </li>
             ))}
           </ul>
+          {p.reviewed_at && <p className="mt-3 rounded-lg bg-canvas px-3 py-2 text-[13px] text-ink-600">Last review {fmtDate(p.reviewed_at)}: {OUTCOME[p.outcome] ?? p.outcome}{p.review_note ? ` · ${p.review_note}` : ""}</p>}
         </div>
       ))}
+      {reviewed.filter((p) => p.status === "closed").length > 0 && <div className="mt-4 border-t border-line pt-3"><PlanHistory plans={reviewed.filter((p) => p.status === "closed")} /></div>}
+    </Card>
+  );
+}
+
+function PlanHistory({ plans }: { plans: any[] }) {
+  return (
+    <ul className="space-y-2 text-[13.5px]">
+      {plans.map((p) => (
+        <li key={p.id} className="flex flex-wrap items-baseline justify-between gap-2">
+          <span><b className="text-ink">{p.kind === "coaching" ? "Coaching Plan" : "Improvement Plan"}</b> · reviewed {fmtDate(p.reviewed_at)}{p.review_note ? <span className="block text-[12.5px] text-ink-600">{p.review_note}</span> : null}</span>
+          <Badge tone={p.outcome === "met" ? "green" : p.outcome === "extended" ? "amber" : "red"}>{OUTCOME[p.outcome] ?? "Closed"}</Badge>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Released QA results split by segment, for someone who teaches in more than one. */
+export function SegmentScores({ d }: { d: PersonData }) {
+  if (d.segScores.length < 2) return null;
+  return (
+    <Card>
+      <CardTitle icon="layers" sub="Average of released education and operations QA visits, per segment taught">By segment</CardTitle>
+      <ul className="space-y-2.5">
+        {d.segScores.map((s) => (
+          <li key={s.segment}>
+            <div className="flex items-baseline justify-between text-[13.5px]"><b className="text-ink">{s.name}</b><span className="tabular-nums font-semibold text-navy">{num(s.avg_pct)}</span></div>
+            <ScoreBar value={Number(s.avg_pct)} />
+            <div className="text-[12px] text-ink-500">{s.visits} {s.visits === 1 ? "visit" : "visits"} · last {fmtDate(s.last)}</div>
+          </li>
+        ))}
+      </ul>
     </Card>
   );
 }

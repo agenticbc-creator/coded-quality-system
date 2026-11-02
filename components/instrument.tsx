@@ -1,17 +1,23 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ActionForm, Submit } from "./forms";
 import { visitSubmit } from "@/app/actions";
 import { Icon } from "./icons";
 import { cx, input, label as lbl } from "./ui";
+import { EvidenceUpload } from "./evidence";
 
-type Item = { key: string; label: string; max: number };
+type Item = { key: string; label: string; max: number; guide?: string };
+export type Anchors = { none?: string; low?: string; mid?: string; max?: string };
 type Section = { key: string; label: string; items: Item[] };
 type Subject = { id: string | null; name: string; role: "instructor" | "ta" | "class" };
 
-export function VisitInstrument({ visitId, kind, rubric, subjects, redFlagReasons }: {
+export function VisitInstrument({ visitId, kind, rubric, subjects, redFlagReasons, anchors, anchorsDraft = true, evidence }: {
   visitId: string; kind: "qa" | "shadowing"; rubric: any; subjects: Subject[]; redFlagReasons: string[];
+  /** General scoring guide (settings.scoring_anchors) shown where an item has no guide of its own. */
+  anchors?: Anchors | null; anchorsDraft?: boolean;
+  /** Evidence already attached; undefined hides the block (before migration 0010). */
+  evidence?: { path: string; kind: string; label: string | null }[];
 }) {
   const storeKey = `visit-draft:${visitId}`;
   const [tab, setTab] = useState(0);
@@ -28,6 +34,10 @@ export function VisitInstrument({ visitId, kind, rubric, subjects, redFlagReason
   const [notes, setNotes] = useState<Record<number, { one_thing: string; action_points: string }>>({});
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [online, setOnline] = useState(true);
+  // Offline submit (E6): a report finished without signal is queued here and sent as soon as the device is back online.
+  const queueKey = `visit-queued:${visitId}`;
+  const [queued, setQueued] = useState(false);
+  const submitRef = useRef<HTMLButtonElement>(null);
 
   // Offline draft (E6): everything is kept on this device until submitted.
   useEffect(() => {
@@ -40,10 +50,14 @@ export function VisitInstrument({ visitId, kind, rubric, subjects, redFlagReason
         setSavedAt(d.savedAt ?? null);
       }
     } catch {}
+    try { setQueued(localStorage.getItem(queueKey) === "1"); } catch {}
     const on = () => setOnline(navigator.onLine);
     on(); window.addEventListener("online", on); window.addEventListener("offline", on);
     return () => { window.removeEventListener("online", on); window.removeEventListener("offline", on); };
-  }, [storeKey]);
+  }, [storeKey, queueKey]);
+  useEffect(() => {
+    if (online && queued) { const t = setTimeout(() => submitRef.current?.click(), 800); return () => clearTimeout(t); }
+  }, [online, queued]);
   useEffect(() => {
     const t = setTimeout(() => {
       try {
@@ -98,7 +112,8 @@ export function VisitInstrument({ visitId, kind, rubric, subjects, redFlagReason
   const setScore = (i: number, key: string, v: number | undefined) => setScores((sc) => { const cur = { ...(sc[i] ?? {}) }; if (v === undefined) delete cur[key]; else cur[key] = v; return { ...sc, [i]: cur }; });
 
   return (
-    <ActionForm action={visitSubmit} onDone={() => { try { localStorage.removeItem(storeKey); } catch {} }} className="space-y-5">
+    <ActionForm action={visitSubmit} onDone={() => { try { localStorage.removeItem(storeKey); localStorage.removeItem(queueKey); } catch {} setQueued(false); }} className="space-y-5">
+      <button ref={submitRef} type="submit" hidden aria-hidden tabIndex={-1} />
       <input type="hidden" name="visit" value={visitId} />
       <input type="hidden" name="attendance" value={attendance} />
       <input type="hidden" name="unobserved" value={JSON.stringify(unobserved)} />
@@ -111,7 +126,7 @@ export function VisitInstrument({ visitId, kind, rubric, subjects, redFlagReason
       <input type="hidden" name="action_points" value={actions || mainNote?.action_points || ""} />
 
       <div className={cx("flex items-center justify-between rounded-lg px-3 py-2 text-[12.5px]", online ? "bg-canvas text-ink-500" : "bg-tier3-bg text-tier3")}>
-        <span className="flex items-center gap-1.5"><Icon name={online ? "check" : "alert"} className="h-3.5 w-3.5" />{online ? "Online" : "Offline — keep going, it is saved on this device"}</span>
+        <span className="flex items-center gap-1.5"><Icon name={online ? "check" : "alert"} className="h-3.5 w-3.5" />{queued ? (online ? "Back online — sending your report" : "Report queued — it sends when you are back online") : online ? "Online" : "Offline — keep going, it is saved on this device"}</span>
         <span>{savedAt ? `Draft saved ${new Date(savedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}` : ""}</span>
       </div>
 
@@ -171,6 +186,12 @@ export function VisitInstrument({ visitId, kind, rubric, subjects, redFlagReason
                       <span className="text-ink">{it.label}</span>
                       <span className="shrink-0 tabular-nums font-semibold text-navy">{v ?? "—"}<span className="text-ink-400">/{it.max}</span></span>
                     </div>
+                    {(it.guide || anchors) && (
+                      <p className="mt-1 text-[12px] leading-snug text-ink-500">
+                        {it.guide ?? `0 ${anchors?.none ?? "not seen"} · ${Math.max(1, Math.round(it.max / 2))} ${anchors?.mid ?? "seen often, with gaps"} · ${it.max} ${anchors?.max ?? "seen throughout"}`}
+                        {!it.guide && anchorsDraft && <span className="ml-1 font-mono text-[10.5px] uppercase tracking-[0.1em] text-tier3">draft guide</span>}
+                      </p>
+                    )}
                     {v === undefined ? (
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <span className="rounded-full bg-tier3-bg px-2.5 py-1 text-[12px] font-bold text-tier3">Not scored</span>
@@ -286,6 +307,12 @@ export function VisitInstrument({ visitId, kind, rubric, subjects, redFlagReason
         </div>
       </Block>
 
+      {evidence && (
+        <Block title="5 · Evidence (optional)" sub="A photo of the board or a short voice note helps the debrief. It never replaces the written report.">
+          <EvidenceUpload visitId={visitId} initial={evidence} online={online} />
+        </Block>
+      )}
+
       <div className="sticky bottom-3 z-10 flex flex-col gap-2 rounded-xl border border-line bg-white/95 p-3 shadow-lift backdrop-blur sm:flex-row sm:items-center sm:justify-between">
         <span className="text-[13px] text-ink-500">
           {kind === "qa" ? subjects.map((s, i) => `${s.name.split(" ")[0]} ${totals[i].pct ?? "—"}`).join(" · ") : `${Object.keys(checklist).length} checklist items answered`}
@@ -295,6 +322,11 @@ export function VisitInstrument({ visitId, kind, rubric, subjects, redFlagReason
             <button type="button" disabled className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-hairline px-4 text-[14px] font-bold text-ink-500">Submit report</button>
             <span className="text-[12px] text-ink-500">{left} {left === 1 ? "item" : "items"} not scored. Score them or mark the area not observed.</span>
           </span>
+        ) : !online ? (
+          <button type="button" disabled={queued} onClick={() => { try { localStorage.setItem(queueKey, "1"); } catch {} setQueued(true); }}
+            className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-gradient-to-b from-brand to-brand-700 px-4 text-[14px] font-bold text-white shadow-glow disabled:opacity-60">
+            <Icon name="wifi" className="h-4 w-4" />{queued ? "Queued until online" : "Submit when back online"}
+          </button>
         ) : <Submit icon="send">Submit report</Submit>}
       </div>
     </ActionForm>

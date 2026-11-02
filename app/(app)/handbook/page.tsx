@@ -9,7 +9,7 @@ export const metadata = { title: "Handbook" };
 const FLOW = [
   { icon: "book", t: "Approve the content", d: "A brief, versions and one approval by the Education Principal. The approved version is locked to the cohort.", href: "/approvals/content" },
   { icon: "user-check", t: "Approve the people", d: "Criteria, vetting, rate, contract, onboarding and two mock classes. Nobody teaches before 'Cleared to teach'.", href: "/approvals/people" },
-  { icon: "layers", t: "Set up the cohort", d: "Classrooms, an overseer, a backup instructor and a QA plan. Go-live is blocked until every gate is green.", href: "/cohorts" },
+  { icon: "layers", t: "Set up the cohort", d: "Classrooms, an overseer, a backup instructor and a QA plan, then the segment owner signs off the staffing and the plan. Go-live is blocked until every gate is green.", href: "/cohorts" },
   { icon: "clipboard", t: "Observe", d: "Shadowing every week, education and operations QA on the plan, pop-ups and pulse checks when signals drop.", href: "/visits" },
   { icon: "send", t: "Release", d: "Notes stay private. The segment owner releases a summary and The One Thing; red flags reach them the same day.", href: "/feedback/release" },
   { icon: "chart", t: "Score and act", d: "The composite is computed every quarter. Tiers open plans automatically and feed levels, master classes and CCTP.", href: "/scores" },

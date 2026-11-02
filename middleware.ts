@@ -16,7 +16,7 @@ export async function middleware(request: NextRequest) {
   });
   const { data } = await supabase.auth.getUser();
   const path = request.nextUrl.pathname;
-  if (!data.user && !path.startsWith("/login")) {
+  if (!data.user && !path.startsWith("/login") && !path.startsWith("/api/cron")) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
@@ -25,5 +25,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|brand/|.*\\.(?:png|svg|jpg|ico|webp)$).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|brand/|fonts/|api/cron/|.*\\.(?:png|svg|jpg|ico|webp|woff2)$).*)"],
 };

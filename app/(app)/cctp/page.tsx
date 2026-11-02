@@ -69,6 +69,12 @@ export default async function CCTP() {
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">Your path</div>
               <div className="mt-2 text-[34px] font-extrabold leading-none tracking-tight">{me.cctp_cert ? `Certified ${me.cctp_cert}` : me.cctp_rank ?? "Newcomer"}</div>
               <div className="mt-2 text-[14.5px] text-white/70">{mine ? <><span className="font-semibold text-white">{mine.lessons_completed}</span> of 100 lessons · {STATUS[mine.status]?.[0]}</> : "Certified trainer"}</div>
+              {mine && !me.cctp_cert && (() => {
+                const next = RANKS.find((r) => r.at > mine.lessons_completed);
+                const step = next ? `Next: ${next.name} at ${next.at} lessons, ${next.at - mine.lessons_completed} to go.`
+                  : mine.status === "booked" ? "Next: your live mock class." : mine.status === "not_yet" ? "Next: book your retake below." : "Next: book your live mock class below.";
+                return <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-[13px] font-semibold text-white ring-1 ring-white/15"><Icon name="arrow" className="h-3.5 w-3.5 text-[#8DA4FF]" />{step}</div>;
+              })()}
             </div>
             {me.cctp_cert && (
               <div className="frame-corners border border-white/25 px-5 py-4 text-center">

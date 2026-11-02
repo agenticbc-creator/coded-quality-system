@@ -24,31 +24,48 @@ export default async function ReleaseQueue() {
   const otherNotes = (notes ?? []).filter((n: any) => n.severity !== "red_flag");
   const flaggedVisits = (visits ?? []).filter((v: any) => v.flags?.length || v.scores?.some((s: any) => s.subject_role !== "class" && Number(s.pct) < 75));
   const otherVisits = (visits ?? []).filter((v: any) => !flaggedVisits.includes(v));
+  // Photos attached to notes (migration 0010): links are signed per viewer and expire after an hour.
+  const photos: Record<string, string> = {};
+  await Promise.all((notes ?? []).filter((n: any) => typeof n.attachment_url === "string" && n.attachment_url.startsWith("evidence:")).map(async (n: any) => {
+    const { data } = await supabase.storage.from("evidence").createSignedUrl(n.attachment_url.slice(9), 3600);
+    if (data?.signedUrl) photos[n.id] = data.signedUrl;
+  }));
+  const index = [
+    ...reds.map((n: any) => ({ id: `n-${n.id}`, red: true, label: `${n.subject?.full_name} · red flag` })),
+    ...flaggedVisits.map((v: any) => ({ id: `v-${v.id}`, red: true, label: `${visitLabel(v)} · ${v.classroom?.name}` })),
+    ...otherVisits.map((v: any) => ({ id: `v-${v.id}`, red: false, label: `${visitLabel(v)} · ${v.classroom?.name}` })),
+    ...otherNotes.map((n: any) => ({ id: `n-${n.id}`, red: false, label: `${n.subject?.full_name} · ${n.type}` })),
+  ];
 
   return (
     <div>
       <PageHeader eyebrow="Only segment owners deliver feedback" title="Release queue"
         sub="Nothing reaches an educator until you approve it. Approve as written, edit then share, or keep it private as a record. Red flags are pinned first and skip the 48-hour SLA." />
       {!owner && <div className="mb-5"><Notice tone="amber">You can see this queue, but only the segment owner can release feedback.</Notice></div>}
+      {index.length > 3 && (
+        <nav aria-label="Items in the queue" className="mb-6 flex flex-wrap gap-2">
+          {index.map((i) => <a key={i.id} href={`#${i.id}`} className={cx("rounded-full px-3 py-1.5 text-[12.5px] font-semibold ring-1 ring-inset", i.red ? "bg-tier4-bg text-tier4 ring-[#F3C3C7]" : "bg-white text-ink-600 ring-hairline hover:ring-brand")}>{i.label}</a>)}
+        </nav>
+      )}
 
       {(reds.length > 0 || flaggedVisits.length > 0) && (
         <section className="mb-8">
           <h2 className="mb-3 flex items-center gap-2 text-[13.5px] font-semibold uppercase tracking-wider text-tier4"><Icon name="flag" className="h-4 w-4" /> Red flags · same-day review</h2>
           <div className="space-y-4">
-            {reds.map((n: any) => <NoteItem key={n.id} n={n} notes={notes ?? []} red />)}
-            {flaggedVisits.map((v: any) => <VisitItem key={v.id} v={v} red perPerson={perPerson} />)}
+            {reds.map((n: any) => <div key={n.id} id={`n-${n.id}`} className="scroll-mt-20"><NoteItem n={n} notes={notes ?? []} red photo={photos[n.id]} /></div>)}
+            {flaggedVisits.map((v: any) => <div key={v.id} id={`v-${v.id}`} className="scroll-mt-20"><VisitItem v={v} red perPerson={perPerson} /></div>)}
           </div>
         </section>
       )}
 
       <section className="mb-8">
         <h2 className="mb-3 text-[13.5px] font-semibold uppercase tracking-wider text-ink-500">Visit reports · {otherVisits.length}</h2>
-        {otherVisits.length === 0 ? <Empty title="No visit reports waiting" icon="check" /> : <div className="space-y-4">{otherVisits.map((v: any) => <VisitItem key={v.id} v={v} perPerson={perPerson} />)}</div>}
+        {otherVisits.length === 0 ? <Empty title="No visit reports waiting" icon="check" /> : <div className="space-y-4">{otherVisits.map((v: any) => <div key={v.id} id={`v-${v.id}`} className="scroll-mt-20"><VisitItem v={v} perPerson={perPerson} /></div>)}</div>}
       </section>
 
       <section>
         <h2 className="mb-3 text-[13.5px] font-semibold uppercase tracking-wider text-ink-500">Notes logged any time · {otherNotes.length}</h2>
-        {otherNotes.length === 0 ? <Empty title="No notes waiting" icon="check" /> : <div className="space-y-4">{otherNotes.map((n: any) => <NoteItem key={n.id} n={n} notes={notes ?? []} />)}</div>}
+        {otherNotes.length === 0 ? <Empty title="No notes waiting" icon="check" /> : <div className="space-y-4">{otherNotes.map((n: any) => <div key={n.id} id={`n-${n.id}`} className="scroll-mt-20"><NoteItem n={n} notes={notes ?? []} photo={photos[n.id]} /></div>)}</div>}
       </section>
     </div>
   );
@@ -137,7 +154,7 @@ function VisitItem({ v, red, perPerson }: { v: any; red?: boolean; perPerson?: b
   );
 }
 
-function NoteItem({ n, notes, red }: { n: any; notes: any[]; red?: boolean }) {
+function NoteItem({ n, notes, red, photo }: { n: any; notes: any[]; red?: boolean; photo?: string }) {
   const siblings = notes.filter((x) => x.id !== n.id && x.subject?.id === n.subject?.id);
   return (
     <Card className={cx(red && "border-[#F6C9C6] ring-1 ring-[#F6C9C6]")}>
@@ -148,7 +165,7 @@ function NoteItem({ n, notes, red }: { n: any; notes: any[]; red?: boolean }) {
             <Badge tone={red ? "red" : n.type === "praise" ? "green" : n.type === "concern" ? "amber" : "neutral"}>{red ? `Red flag · ${n.red_flag_reason}` : n.type}</Badge>
             {n.severity === "serious" && <Badge tone="amber">serious</Badge>}
           </div>
-          <div className="mt-0.5 text-[13px] text-ink-500">Logged by {n.author?.full_name} · {n.cohort?.name}{n.classroom ? ` · ${n.classroom.name}` : ""}</div>
+          <div className="mt-0.5 text-[13px] text-ink-500">Logged by {n.author?.full_name} · {n.cohort?.name}{n.classroom ? ` · ${n.classroom.name}` : ""}{photo && <> · <a href={photo} target="_blank" rel="noreferrer" className="font-semibold text-brand">photo</a></>}</div>
         </div>
         <Due since={n.created_at} />
       </div>

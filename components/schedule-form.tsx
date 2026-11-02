@@ -71,6 +71,7 @@ export function ScheduleForm({ cohorts, people, templates, initial }: { cohorts:
             <option value="tas">The TAs</option>
             <option value="classroom_management">Classroom management</option>
             <option value="content">The content</option>
+            <option value="alignment">Alignment before Day 1</option>
           </select>
         </Field>
         <Field label="Template">

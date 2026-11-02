@@ -2,10 +2,10 @@ import { notFound, redirect } from "next/navigation";
 import { getMe, has } from "@/lib/session";
 import { loadPerson } from "@/lib/person";
 import { db } from "@/lib/supabase";
-import { Breakdown, FeedbackList, Hero, History, JDChecklist, Plans, Profile, Review360, Signals, Surveys, Trend, WriteBack } from "@/components/performance";
+import { Breakdown, FeedbackList, Hero, History, JDChecklist, Plans, Profile, Review360, SegmentScores, Signals, Surveys, Trend, WriteBack } from "@/components/performance";
 import { Badge, Card, CardTitle, Empty, Field, PageHeader, Table, input, td } from "@/components/ui";
 import { ActionForm, Disclosure, Submit } from "@/components/forms";
-import { accountabilityAdd, planSave } from "@/app/actions";
+import { accountabilityAdd, planReview, planSave, schemaVersion } from "@/app/actions";
 import { LinkButton } from "@/components/ui";
 import { fmtDate, num, visitLabel } from "@/lib/format";
 
@@ -16,9 +16,10 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
   const d = await loadPerson(id);
   if (!d.person) notFound();
   const supabase = await db();
-  const [{ data: notes }, { data: scores }] = await Promise.all([
+  const [{ data: notes }, { data: scores }, v] = await Promise.all([
     supabase.from("feedback").select("*, author:people!feedback_author_id_fkey(full_name), cohort:cohorts(name)").eq("subject_id", id).order("created_at", { ascending: false }),
     supabase.from("visit_scores").select("*, visit:visits(kind, qa_type, mode, week_no, submitted_at, release_status, cohort:cohorts(name))").eq("subject_person_id", id),
+    schemaVersion(),
   ]);
   const canSeeScores = Boolean(d.current) || d.composites.length > 0;
   const isOwner = has(me, "segment_owner");
@@ -36,6 +37,7 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
         <div className="space-y-6">
           {canSeeScores && <Breakdown d={d} />}
+          <SegmentScores d={d} />
           <Signals d={d} />
           {(scores?.length ?? 0) > 0 && (
             <Card>
@@ -92,9 +94,29 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
                   </Field>
                   <div className="flex flex-wrap gap-2">
                     <Submit size="sm" icon="check">{p ? "Save plan" : "Open plan"}</Submit>
-                    {p && <Submit size="sm" variant="secondary" name="status" value="closed">Close plan</Submit>}
+                    {p && v < 10 && <Submit size="sm" variant="secondary" name="status" value="closed">Close plan</Submit>}
                   </div>
                 </ActionForm>
+              ))}
+              {v >= 10 && d.plans.filter((p) => p.status === "open").map((p: any) => (
+                <div key={`review-${p.id}`} className="mt-4 border-t border-line pt-3">
+                  <Disclosure label={`Record the ${p.kind === "coaching" ? "Coaching" : "Improvement"} Plan review`}>
+                    <ActionForm action={planReview} className="space-y-3">
+                      <input type="hidden" name="person" value={id} /><input type="hidden" name="plan" value={p.id} />
+                      <Field label="Outcome">
+                        <select name="outcome" className={input} defaultValue="met">
+                          <option value="met">Goals met: close the plan</option>
+                          <option value="extended">Not yet: extend to a new date</option>
+                          {p.kind === "coaching" ? <option value="escalated">Not met: move to an Improvement Plan</option> : <option value="hr_review">Not met: ask HR to step in</option>}
+                        </select>
+                      </Field>
+                      <Field label="New review date (for an extension or a new plan)"><input type="date" name="due" className={input} /></Field>
+                      <Field label="What you saw"><textarea name="note" rows={3} required className={input} placeholder="Two of three goals met; time-boxing now consistent across sessions." /></Field>
+                      <p className="text-[12px] text-ink-500">The educator sees the outcome and your note. An Improvement Plan carries over the goals not yet met.</p>
+                      <Submit size="sm" icon="check">Record the review</Submit>
+                    </ActionForm>
+                  </Disclosure>
+                </div>
               ))}
             </Card>
           )}
