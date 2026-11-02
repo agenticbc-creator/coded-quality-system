@@ -26,7 +26,7 @@ export default async function NewVisit({ searchParams }: { searchParams: Promise
 
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader back={{ href: "/visits", label: "Visits" }} eyebrow="D3 · schedule a visit" title={v ? "Assign or reschedule a visit" : "Schedule a visit"}
+      <PageHeader back={{ href: "/visits", label: "Visits" }} eyebrow="Schedule a visit" title={v ? "Assign or reschedule a visit" : "Schedule a visit"}
         sub="Pick the observer, the type, the focus and the template. Availability comes from ERPNext." />
       <Card>
         <ScheduleForm

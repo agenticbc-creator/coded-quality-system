@@ -4,7 +4,7 @@ import { db } from "@/lib/supabase";
 import { Badge, Card, Empty, Notice, PageHeader, cx, input, label as lbl } from "@/components/ui";
 import { ActionForm, Submit } from "@/components/forms";
 import { Icon } from "@/components/icons";
-import { feedbackReview, visitRelease } from "@/app/actions";
+import { feedbackReview, schemaVersion, visitRelease } from "@/app/actions";
 import { CHANNEL, ago, fmtDateTime, hoursSince, num, visitLabel } from "@/lib/format";
 
 export const metadata = { title: "Release queue" };
@@ -19,6 +19,7 @@ export default async function ReleaseQueue() {
       .eq("status", "private").order("created_at"),
   ]);
   const owner = has(me, "segment_owner");
+  const perPerson = (await schemaVersion()) >= 9;
   const reds = (notes ?? []).filter((n: any) => n.severity === "red_flag");
   const otherNotes = (notes ?? []).filter((n: any) => n.severity !== "red_flag");
   const flaggedVisits = (visits ?? []).filter((v: any) => v.flags?.length || v.scores?.some((s: any) => s.subject_role !== "class" && Number(s.pct) < 75));
@@ -26,27 +27,27 @@ export default async function ReleaseQueue() {
 
   return (
     <div>
-      <PageHeader eyebrow="Pillar B · only segment owners deliver feedback" title="Release queue"
+      <PageHeader eyebrow="Only segment owners deliver feedback" title="Release queue"
         sub="Nothing reaches an educator until you approve it. Approve as written, edit then share, or keep it private as a record. Red flags are pinned first and skip the 48-hour SLA." />
       {!owner && <div className="mb-5"><Notice tone="amber">You can see this queue, but only the segment owner can release feedback.</Notice></div>}
 
       {(reds.length > 0 || flaggedVisits.length > 0) && (
         <section className="mb-8">
-          <h2 className="mb-3 flex items-center gap-2 text-[13px] font-semibold uppercase tracking-wider text-tier4"><Icon name="flag" className="h-4 w-4" /> Red flags · same-day review</h2>
+          <h2 className="mb-3 flex items-center gap-2 text-[13.5px] font-semibold uppercase tracking-wider text-tier4"><Icon name="flag" className="h-4 w-4" /> Red flags · same-day review</h2>
           <div className="space-y-4">
             {reds.map((n: any) => <NoteItem key={n.id} n={n} notes={notes ?? []} red />)}
-            {flaggedVisits.map((v: any) => <VisitItem key={v.id} v={v} red />)}
+            {flaggedVisits.map((v: any) => <VisitItem key={v.id} v={v} red perPerson={perPerson} />)}
           </div>
         </section>
       )}
 
       <section className="mb-8">
-        <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-wider text-ink-500">Visit reports · {otherVisits.length}</h2>
-        {otherVisits.length === 0 ? <Empty title="No visit reports waiting" icon="check" /> : <div className="space-y-4">{otherVisits.map((v: any) => <VisitItem key={v.id} v={v} />)}</div>}
+        <h2 className="mb-3 text-[13.5px] font-semibold uppercase tracking-wider text-ink-500">Visit reports · {otherVisits.length}</h2>
+        {otherVisits.length === 0 ? <Empty title="No visit reports waiting" icon="check" /> : <div className="space-y-4">{otherVisits.map((v: any) => <VisitItem key={v.id} v={v} perPerson={perPerson} />)}</div>}
       </section>
 
       <section>
-        <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-wider text-ink-500">Notes logged any time · {otherNotes.length}</h2>
+        <h2 className="mb-3 text-[13.5px] font-semibold uppercase tracking-wider text-ink-500">Notes logged any time · {otherNotes.length}</h2>
         {otherNotes.length === 0 ? <Empty title="No notes waiting" icon="check" /> : <div className="space-y-4">{otherNotes.map((n: any) => <NoteItem key={n.id} n={n} notes={notes ?? []} />)}</div>}
       </section>
     </div>
@@ -58,8 +59,9 @@ function Due({ since }: { since: string }) {
   return <Badge tone={h > 24 ? "red" : "neutral"}><Icon name="clock" className="h-3 w-3" /> {h > 24 ? `${Math.round(h)}h — past the 24h debrief` : `filed ${ago(since)}`}</Badge>;
 }
 
-function VisitItem({ v, red }: { v: any; red?: boolean }) {
+function VisitItem({ v, red, perPerson }: { v: any; red?: boolean; perPerson?: boolean }) {
   const subjects = (v.scores ?? []).sort((a: any, b: any) => (a.subject_role > b.subject_role ? 1 : -1));
+  const people = subjects.filter((x: any) => x.subject_role !== "class" && x.subject_person_id);
   return (
     <Card className={cx(red && "border-[#F6C9C6] ring-1 ring-[#F6C9C6]")}>
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -68,33 +70,58 @@ function VisitItem({ v, red }: { v: any; red?: boolean }) {
             <Link href={`/visits/${v.id}`} className="text-[15px] font-semibold text-navy hover:text-brand">{visitLabel(v)} · week {v.week_no}</Link>
             {v.flags?.map((f: string) => <Badge key={f} tone="red">{f === "remediation_shadow_tier1" ? "Observation under 75 → shadow a Tier 1 instructor" : f}</Badge>)}
           </div>
-          <div className="mt-0.5 text-[12.5px] text-ink-500">{v.cohort?.name} · {v.classroom?.name} · by {v.assignee?.full_name} · {fmtDateTime(v.scheduled_for)}</div>
+          <div className="mt-0.5 text-[13px] text-ink-500">{v.cohort?.name} · {v.classroom?.name} · by {v.assignee?.full_name} · {fmtDateTime(v.scheduled_for)}</div>
         </div>
         <Due since={v.submitted_at} />
       </div>
       {subjects.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
           {subjects.map((s: any) => (
-            <span key={s.id} className={cx("rounded-lg px-2.5 py-1 text-[12.5px] ring-1 ring-inset", Number(s.pct) < 75 ? "bg-tier4-bg text-tier4 ring-[#F6C9C6]" : "bg-canvas text-ink-600 ring-line")}>
+            <span key={s.id} className={cx("rounded-lg px-2.5 py-1 text-[13px] ring-1 ring-inset", Number(s.pct) < 75 ? "bg-tier4-bg text-tier4 ring-[#F6C9C6]" : "bg-canvas text-ink-600 ring-line")}>
               {s.subject?.full_name ?? "Class overall"} <span className="tabular-nums font-semibold">{num(s.pct)}</span>
             </span>
           ))}
         </div>
       )}
       {v.interventions?.length > 0 && (
-        <div className="mt-3 rounded-lg bg-canvas px-3 py-2 text-[12.5px] text-ink-600">
+        <div className="mt-3 rounded-lg bg-canvas px-3 py-2 text-[13px] text-ink-600">
           {v.interventions.map((i: any, k: number) => <div key={k}><b className="capitalize">{i.kind}:</b> {i.trigger} — {i.outcome}</div>)}
         </div>
       )}
       <ActionForm action={visitRelease} className="mt-4 space-y-3">
         <input type="hidden" name="visit" value={v.id} />
-        <div><span className={lbl}>Summary the educator will read</span><textarea name="summary" rows={2} defaultValue={v.summary ?? ""} className={input} /></div>
-        <div className="grid gap-3 md:grid-cols-2">
-          <div><span className={lbl}>The One Thing</span><input name="one_thing" defaultValue={v.one_thing ?? ""} className={input} /></div>
-          <div><span className={lbl}>Action points</span><input name="action_points" defaultValue={v.action_points ?? ""} className={input} /></div>
-        </div>
+        <div><span className={lbl}>{perPerson ? "Class summary (everyone scored reads this)" : "Summary the educator will read"}</span><textarea name="summary" rows={2} defaultValue={v.summary ?? ""} className={input} /></div>
+        {perPerson && people.length > 0 ? (
+          <>
+            <input type="hidden" name="people" value={people.map((p: any) => p.subject_person_id).join(",")} />
+            <input type="hidden" name="one_thing" value={v.one_thing ?? ""} />
+            <input type="hidden" name="action_points" value={v.action_points ?? ""} />
+            {people.map((p: any) => (
+              <div key={p.subject_person_id} className="space-y-3 rounded-xl border border-hairline p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <b className="text-[14.5px] text-ink">{p.subject?.full_name}</b>
+                  <span className="font-mono text-[12.5px] tabular-nums text-ink-600">{num(p.pct)}</span>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div><span className={lbl}>The One Thing for {p.subject?.full_name?.split(" ")[0]}</span><input name={`one_thing_${p.subject_person_id}`} defaultValue={p.one_thing || v.one_thing || ""} className={input} /></div>
+                  <div><span className={lbl}>Action points for {p.subject?.full_name?.split(" ")[0]}</span><input name={`action_points_${p.subject_person_id}`} defaultValue={p.action_points ?? ""} className={input} /></div>
+                </div>
+                <div className="sm:w-72"><span className={lbl}>Delivery to {p.subject?.full_name?.split(" ")[0]}</span>
+                  <select name={`channel_${p.subject_person_id}`} defaultValue={Number(p.pct) < 75 ? "face_email" : Number(p.pct) < 85 ? "call_email" : "email"} className={input}>
+                    {Object.entries(CHANNEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                  </select>
+                </div>
+              </div>
+            ))}
+          </>
+        ) : (
+          <div className="grid gap-3 md:grid-cols-2">
+            <div><span className={lbl}>The One Thing</span><input name="one_thing" defaultValue={v.one_thing ?? ""} className={input} /></div>
+            <div><span className={lbl}>Action points</span><input name="action_points" defaultValue={v.action_points ?? ""} className={input} /></div>
+          </div>
+        )}
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <div className="w-full sm:w-72"><span className={lbl}>Delivery (Pillar B)</span>
+          <div className="w-full sm:w-72"><span className={lbl}>Delivery</span>
             <select name="channel" defaultValue={red ? "face_email" : subjects.some((s: any) => Number(s.pct) < 85) ? "call_email" : "email"} className={input}>
               {Object.entries(CHANNEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
             </select>
@@ -102,7 +129,7 @@ function VisitItem({ v, red }: { v: any; red?: boolean }) {
           <div className="flex flex-wrap gap-2">
             <Submit variant="ghost" size="sm" name="decision" value="keep_private" icon="lock">Keep private</Submit>
             <Submit variant="secondary" size="sm" name="decision" value="edit" icon="pen">Share with my edits</Submit>
-            <Submit size="sm" name="decision" value="approve" icon="send">Approve as written</Submit>
+            <Submit size="sm" name="decision" value="approve" icon="send">{perPerson && people.length > 1 ? `Release to ${people.length} people` : "Approve as written"}</Submit>
           </div>
         </div>
       </ActionForm>
@@ -121,7 +148,7 @@ function NoteItem({ n, notes, red }: { n: any; notes: any[]; red?: boolean }) {
             <Badge tone={red ? "red" : n.type === "praise" ? "green" : n.type === "concern" ? "amber" : "neutral"}>{red ? `Red flag · ${n.red_flag_reason}` : n.type}</Badge>
             {n.severity === "serious" && <Badge tone="amber">serious</Badge>}
           </div>
-          <div className="mt-0.5 text-[12.5px] text-ink-500">Logged by {n.author?.full_name} · {n.cohort?.name}{n.classroom ? ` · ${n.classroom.name}` : ""}</div>
+          <div className="mt-0.5 text-[13px] text-ink-500">Logged by {n.author?.full_name} · {n.cohort?.name}{n.classroom ? ` · ${n.classroom.name}` : ""}</div>
         </div>
         <Due since={n.created_at} />
       </div>

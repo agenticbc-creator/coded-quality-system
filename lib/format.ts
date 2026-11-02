@@ -104,3 +104,19 @@ export const STATUS_LABEL: Record<string, string> = {
 export function initials(name: string) {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]).join("").toUpperCase();
 }
+
+/** Working days since a moment (Kuwait weekend: Friday and Saturday), as the approvals turnaround counts them. */
+export function workingDaysSince(v: string | null | undefined) {
+  if (!v) return 0;
+  let n = 0;
+  const d = new Date(v);
+  const end = new Date();
+  d.setHours(0, 0, 0, 0);
+  while (d < end) { d.setDate(d.getDate() + 1); const w = d.getDay(); if (d <= end && w !== 5 && w !== 6) n++; }
+  return n;
+}
+/** " · N days late" against the 3-working-day turnaround, or "". */
+export function lateLabel(v: string | null | undefined, turnaround = 3) {
+  const over = workingDaysSince(v) - turnaround;
+  return over > 0 ? `${over} ${over === 1 ? "day" : "days"} late` : "";
+}

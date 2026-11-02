@@ -21,7 +21,7 @@ export default async function NewFeedback() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <PageHeader eyebrow="FB1 · feedback any time" title="Log feedback"
+      <PageHeader eyebrow="Feedback any time" title="Log feedback"
         sub="Capture it while it is fresh, from your phone or laptop. Nothing reaches the educator until the segment owner approves it." />
       <Card><FeedbackForm options={options} reasons={(reasons?.value as string[]) ?? []} /></Card>
       {(mine ?? []).length > 0 && (
@@ -29,7 +29,7 @@ export default async function NewFeedback() {
           <CardTitle icon="clock" sub="Only you, the segment owner and the Education Principal can see these">Your recent notes</CardTitle>
           <ul className="space-y-2">
             {(mine ?? []).map((f: any) => (
-              <li key={f.id} className="flex items-start justify-between gap-3 border-b border-line/70 pb-2 text-[13px] last:border-0">
+              <li key={f.id} className="flex items-start justify-between gap-3 border-b border-line/70 pb-2 text-[13.5px] last:border-0">
                 <span><b className="text-navy">{f.subject.full_name}</b> · {f.body}</span>
                 <span className="shrink-0 text-right"><Badge tone={f.status === "released" ? "green" : f.status === "private" ? "amber" : "neutral"}>{f.status === "private" ? "waiting" : f.status.replace("_", " ")}</Badge><span className="block text-[11px] text-ink-500">{fmtDateTime(f.created_at)}</span></span>
               </li>

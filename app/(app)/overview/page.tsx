@@ -35,7 +35,7 @@ export default async function Overview() {
 
   return (
     <div>
-      <PageHeader eyebrow="GM · observer" title="Overview across segments"
+      <PageHeader eyebrow="General Manager · observer" title="Overview across segments"
         sub="You see every queue and every decision, read only. You approve nothing here, except instructor-level changes as an alternative to HR." />
       <div className="mb-6 grid gap-3 sm:grid-cols-4">
         <Stat label="Live cohorts" value={(cohorts ?? []).filter((c: any) => c.status === "live").length} icon="layers" />
@@ -49,20 +49,20 @@ export default async function Overview() {
             <CardTitle icon="chart" sub="Average composite and tier spread this quarter">Quality by segment</CardTitle>
             {bySeg.map(({ s, list, avg }) => (
               <div key={s} className="border-b border-line/70 py-3 last:border-0">
-                <div className="flex items-center justify-between"><span className="text-[14px] font-semibold text-navy">{SEGMENT[s]}</span><span className="tabular-nums text-[18px] font-semibold" style={{ color: tierColor(avg) }}>{avg ? num(avg) : "—"}</span></div>
-                <div className="mt-1.5 flex flex-wrap gap-1.5">{[1, 2, 3, 4].map((t) => { const n = list.filter((c: any) => c.tier === t).length; return n ? <TierBadge key={t} tier={t} /> : null; })}{!list.length && <span className="text-[12px] text-ink-500">No scores this quarter</span>}</div>
+                <div className="flex items-center justify-between"><span className="text-[14.5px] font-semibold text-navy">{SEGMENT[s]}</span><span className="tabular-nums text-[18px] font-semibold" style={{ color: tierColor(avg) }}>{avg ? num(avg) : "—"}</span></div>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">{[1, 2, 3, 4].map((t) => { const n = list.filter((c: any) => c.tier === t).length; return n ? <TierBadge key={t} tier={t} /> : null; })}{!list.length && <span className="text-[12.5px] text-ink-500">No scores this quarter</span>}</div>
               </div>
             ))}
           </Card>
           <Card>
             <CardTitle icon="user-check" sub="Who the pipeline is waiting on">Approvals in progress</CardTitle>
             {openSteps.length === 0 ? <Empty title="Nothing open" /> : openSteps.map((s: any) => (
-              <Link key={s.pipeline.id + s.step} href={`/approvals/people/${s.pipeline.id}`} className="flex items-center justify-between border-b border-line/70 py-2 text-[13px] last:border-0">
+              <Link key={s.pipeline.id + s.step} href={`/approvals/people/${s.pipeline.id}`} className="flex items-center justify-between border-b border-line/70 py-2 text-[13.5px] last:border-0">
                 <span>{s.pipeline.person.full_name} · {STEP[s.step].label}</span><Badge>{STEP[s.step].owner}</Badge>
               </Link>
             ))}
             {(content ?? []).map((c: any) => (
-              <Link key={c.id} href={`/approvals/content/${c.id}`} className="flex items-center justify-between border-b border-line/70 py-2 text-[13px] last:border-0">
+              <Link key={c.id} href={`/approvals/content/${c.id}`} className="flex items-center justify-between border-b border-line/70 py-2 text-[13.5px] last:border-0">
                 <span>{c.title}</span><Badge tone="amber">Content approval</Badge>
               </Link>
             ))}
@@ -72,9 +72,9 @@ export default async function Overview() {
           <CardTitle icon="eye" sub="Approval audit log: who approved what, when, with which version">Decisions</CardTitle>
           <ul className="divide-y divide-line/70">
             {(audit ?? []).map((a: any) => (
-              <li key={a.id} className="flex items-start justify-between gap-3 py-2.5 text-[13px]">
+              <li key={a.id} className="flex items-start justify-between gap-3 py-2.5 text-[13.5px]">
                 <span><b className="text-navy">{a.actor?.full_name ?? "System"}</b> · {ACTION[a.action] ?? a.action}{a.data?.step ? ` (${STEP[a.data.step]?.label ?? a.data.step})` : ""}{a.data?.version ? ` · v${a.data.version}` : ""}</span>
-                <span className="shrink-0 text-[11.5px] text-ink-500">{fmtDateTime(a.at)}</span>
+                <span className="shrink-0 text-[12px] text-ink-500">{fmtDateTime(a.at)}</span>
               </li>
             ))}
           </ul>

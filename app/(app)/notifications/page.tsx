@@ -17,7 +17,7 @@ export default async function Notifications() {
   const unread = list.filter((n) => !n.read_at).length;
   return (
     <div className="mx-auto max-w-2xl">
-      <PageHeader eyebrow="N1 · alerts" title="Notifications" sub="Approvals waiting, decisions, visit invites, red flags and reminders. Email delivery is wired when the system moves into Portal v2."
+      <PageHeader eyebrow="Alerts" title="Notifications" sub="Approvals waiting, decisions, visit invites, red flags and reminders. Email delivery is wired when the system moves into Portal v2."
         actions={unread ? <ActionForm action={notificationsRead}><Submit variant="secondary" size="sm" icon="check">Mark all read</Submit></ActionForm> : undefined} />
       {list.length === 0 ? <Empty title="No notifications" icon="bell" /> : (
         <Card pad={false}>
@@ -31,8 +31,8 @@ export default async function Notifications() {
                       <Icon name={red ? "flag" : /remind/i.test(n.title) ? "clock" : /invite|visit/i.test(n.title) ? "clipboard" : /approv|content/i.test(n.title) ? "check" : "bell"} className="h-4 w-4" />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="flex items-center justify-between gap-3"><span className={cx("text-[13.5px]", n.read_at ? "text-ink-600" : "font-semibold text-navy")}>{n.title}</span><span className="shrink-0 text-[11.5px] text-ink-500">{ago(n.created_at)}</span></span>
-                      {n.body && <span className="block truncate text-[12.5px] text-ink-500">{n.body}</span>}
+                      <span className="flex items-center justify-between gap-3"><span className={cx("text-[14px]", n.read_at ? "text-ink-600" : "font-semibold text-navy")}>{n.title}</span><span className="shrink-0 text-[12px] text-ink-500">{ago(n.created_at)}</span></span>
+                      {n.body && <span className="block truncate text-[13px] text-ink-500">{n.body}</span>}
                     </span>
                   </Link>
                 </li>

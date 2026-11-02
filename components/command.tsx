@@ -36,7 +36,7 @@ export function CommandPalette({ items }: { items: CommandItem[] }) {
   return (
     <>
       <button type="button" onClick={() => setOpen(true)}
-        className="hidden h-9 w-[260px] items-center gap-2 rounded-lg bg-canvas px-3 text-[13px] text-ink-500 ring-1 ring-inset ring-line transition hover:bg-white hover:ring-brand-200 md:flex">
+        className="hidden h-9 w-[260px] items-center gap-2 rounded-lg bg-canvas px-3 text-[13.5px] text-ink-500 ring-1 ring-inset ring-line transition hover:bg-white hover:ring-brand-200 md:flex">
         <Icon name="search" className="h-4 w-4" /> <span className="flex-1 text-left">Jump to a page or person</span>
         <span className="kbd">⌘K</span>
       </button>
@@ -58,14 +58,14 @@ export function CommandPalette({ items }: { items: CommandItem[] }) {
               <span className="kbd">esc</span>
             </div>
             <ul className="max-h-[50vh] overflow-y-auto p-2">
-              {list.length === 0 && <li className="px-3 py-6 text-center text-[13px] text-ink-500">Nothing matches “{q}”.</li>}
+              {list.length === 0 && <li className="px-3 py-6 text-center text-[13.5px] text-ink-500">Nothing matches “{q}”.</li>}
               {list.map((x, k) => (
                 <li key={x.href + x.label}>
                   <button type="button" onMouseEnter={() => setI(k)} onClick={() => go(x.href)}
-                    className={cx("flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-[13.5px]", k === i ? "bg-navy text-white" : "text-ink")}>
+                    className={cx("flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-[14px]", k === i ? "bg-navy text-white" : "text-ink")}>
                     <span className={cx("grid h-7 w-7 place-items-center rounded-md", k === i ? "bg-white/15" : "bg-canvas text-navy")}><Icon name={x.icon} className="h-4 w-4" /></span>
                     <span className="flex-1 truncate font-medium">{x.label}</span>
-                    <span className={cx("text-[11.5px]", k === i ? "text-white/60" : "text-ink-400")}>{x.hint ?? x.group}</span>
+                    <span className={cx("text-[12px]", k === i ? "text-white/60" : "text-ink-400")}>{x.hint ?? x.group}</span>
                   </button>
                 </li>
               ))}

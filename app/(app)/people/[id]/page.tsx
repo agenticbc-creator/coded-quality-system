@@ -43,7 +43,7 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
               <Table head={["Visit", "Cohort", "Role", "Score", "Status"]}>
                 {scores!.sort((a: any, b: any) => (a.visit.submitted_at < b.visit.submitted_at ? 1 : -1)).map((s: any) => (
                   <tr key={s.id}>
-                    <td className={td}><div className="font-medium text-navy">{visitLabel(s.visit)}</div><div className="text-[11.5px] text-ink-500">Week {s.visit.week_no} · {fmtDate(s.visit.submitted_at)}</div></td>
+                    <td className={td}><div className="font-medium text-navy">{visitLabel(s.visit)}</div><div className="text-[12px] text-ink-500">Week {s.visit.week_no} · {fmtDate(s.visit.submitted_at)}</div></td>
                     <td className={td}>{s.visit.cohort?.name}</td>
                     <td className={td}>{s.subject_role === "ta" ? "TA" : "Instructor"}</td>
                     <td className={td}><span className={`tabular-nums font-semibold ${Number(s.pct) < 75 ? "text-tier4" : "text-navy"}`}>{num(s.pct)}</span></td>
@@ -58,11 +58,11 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
               <CardTitle icon="lock" sub="Private by default. Only released notes reach the educator, as a separate copy.">Notes (private)</CardTitle>
               <ul className="space-y-2.5">
                 {notes!.map((f: any) => (
-                  <li key={f.id} className="rounded-lg border border-line p-3 text-[13px]">
+                  <li key={f.id} className="rounded-lg border border-line p-3 text-[13.5px]">
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge tone={f.severity === "red_flag" ? "red" : f.type === "praise" ? "green" : f.type === "concern" ? "amber" : "neutral"}>{f.severity === "red_flag" ? `Red flag · ${f.red_flag_reason}` : f.type}</Badge>
                       <Badge>{f.status.replace("_", " ")}</Badge>
-                      <span className="text-[12px] text-ink-500">{f.author?.full_name} · {fmtDate(f.created_at)} · {f.cohort?.name}</span>
+                      <span className="text-[12.5px] text-ink-500">{f.author?.full_name} · {fmtDate(f.created_at)} · {f.cohort?.name}</span>
                     </div>
                     <p className="mt-1.5 text-ink">{f.body}</p>
                   </li>
@@ -102,11 +102,11 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
           {canSeeScores && <Review360 d={d} self={false} />}
           <Surveys d={d} />
           <Profile d={d} />
-          <WriteBack d={d} />
+          <WriteBack d={d} showLastQa={has(me, "segment_owner", "hr", "education_principal", "system_owner")} />
           {(isOwner || has(me, "operations")) && liveCohort && (
             <Card>
               <CardTitle icon="pen" sub="For what the system cannot see. Feeds accountability (coordinator entries).">Accountability entry</CardTitle>
-              {d.acc.length > 0 && <ul className="mb-3 space-y-1 text-[12.5px]">{d.acc.map((a) => <li key={a.id} className="flex justify-between"><span>{a.label}</span><span className="tabular-nums">{a.score}</span></li>)}</ul>}
+              {d.acc.length > 0 && <ul className="mb-3 space-y-1 text-[13px]">{d.acc.map((a) => <li key={a.id} className="flex justify-between"><span>{a.label}</span><span className="tabular-nums">{a.score}</span></li>)}</ul>}
               <Disclosure label="Add entry">
                 <ActionForm action={accountabilityAdd} resetOnSuccess className="space-y-3">
                   <input type="hidden" name="person" value={id} />

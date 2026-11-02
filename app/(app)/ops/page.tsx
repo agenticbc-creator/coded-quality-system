@@ -48,8 +48,8 @@ export default async function Ops() {
                   return (
                     <li key={cl.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                       <div>
-                        <div className="text-[14px] font-semibold text-navy">{cl.cohort.name} · {cl.name}</div>
-                        <div className="text-[12.5px] text-ink-500">{cl.room ?? "Room not set"} · {instr ?? "no instructor"} · {s.length ? s.map((x: any) => `${fmtTime(x.starts_at)} ${x.topic}`).join(", ") : "no session today"}</div>
+                        <div className="text-[14.5px] font-semibold text-navy">{cl.cohort.name} · {cl.name}</div>
+                        <div className="text-[13px] text-ink-500">{cl.room ?? "Room not set"} · {instr ?? "no instructor"} · {s.length ? s.map((x: any) => `${fmtTime(x.starts_at)} ${x.topic}`).join(", ") : "no session today"}</div>
                       </div>
                       <ActionForm action={classroomReady} className="contents">
                         <input type="hidden" name="cohort" value={cl.cohort.id} /><input type="hidden" name="classroom" value={cl.id} /><input type="hidden" name="ready" value={cl.ready ? "false" : "true"} />
@@ -70,19 +70,19 @@ export default async function Ops() {
                   return (
                     <div key={cl.id} className="rounded-xl border border-[#F6C9C6] bg-tier4-bg/40 p-4">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="text-[14px] font-semibold text-navy">{cl.cohort.name} · {cl.name}</div>
+                        <div className="text-[14.5px] font-semibold text-navy">{cl.cohort.name} · {cl.name}</div>
                         {instr && (
                           <ActionForm action={remind}>
                             <input type="hidden" name="person" value={instr.id} />
                             <input type="hidden" name="title" value="Reminder: CODED App records" />
-                            <input type="hidden" name="body" value={`${cl.name}: ${data.late_attendance?.length ?? 0} session(s) without attendance, ${data.ungraded_backlog} submission(s) ungraded over 72h.`} />
+                            <input type="hidden" name="body" value={`${cl.name}: ${data.late_attendance?.length ?? 0} session${(data.late_attendance?.length ?? 0) === 1 ? "" : "s"} without attendance, ${data.ungraded_backlog} {data.ungraded_backlog === 1 ? "submission" : "submissions"} ungraded over 72h.`} />
                             <Submit size="sm" icon="bell">Remind {instr.full_name.split(" ")[0]}</Submit>
                           </ActionForm>
                         )}
                       </div>
-                      <ul className="mt-2 space-y-1 text-[13px]">
+                      <ul className="mt-2 space-y-1 text-[13.5px]">
                         {data.late_attendance?.map((l: any) => <li key={l.session} className="flex items-center gap-2"><Icon name="clock" className="h-3.5 w-3.5 text-tier4" /> Attendance not logged · {fmtDateTime(l.starts_at)} · {l.hours_late}h</li>)}
-                        {data.ungraded_backlog > 0 && <li className="flex items-center gap-2"><Icon name="doc" className="h-3.5 w-3.5 text-tier4" /> {data.ungraded_backlog} submission(s) ungraded over 72h</li>}
+                        {data.ungraded_backlog > 0 && <li className="flex items-center gap-2"><Icon name="doc" className="h-3.5 w-3.5 text-tier4" /> {data.ungraded_backlog} {data.ungraded_backlog === 1 ? "submission" : "submissions"} ungraded over 72h</li>}
                       </ul>
                     </div>
                   );
@@ -95,8 +95,8 @@ export default async function Ops() {
           <Card>
             <CardTitle icon="clipboard" sub="Shadowing and operations QA visits assigned to you">Your visits</CardTitle>
             {mine.length === 0 ? <Empty title="No visits assigned" /> : mine.map((v: any) => (
-              <Link key={v.id} href={`/visits/${v.id}`} className="mb-2 flex items-center justify-between rounded-lg border border-line p-3 text-[13px] hover:bg-canvas">
-                <span><b className="text-navy">{visitLabel(v)}</b> · {v.classroom?.name}<span className="block text-[12px] text-ink-500">{fmtDateTime(v.scheduled_for)}</span></span>
+              <Link key={v.id} href={`/visits/${v.id}`} className="mb-2 flex items-center justify-between rounded-lg border border-line p-3 text-[13.5px] hover:bg-canvas">
+                <span><b className="text-navy">{visitLabel(v)}</b> · {v.classroom?.name}<span className="block text-[12.5px] text-ink-500">{fmtDateTime(v.scheduled_for)}</span></span>
                 <Badge tone={v.status === "accepted" ? "green" : "brand"}>{v.status === "invited" ? "Respond" : v.status}</Badge>
               </Link>
             ))}
@@ -104,8 +104,8 @@ export default async function Ops() {
           <Card>
             <CardTitle icon="plus" sub="Shadowing and operations QA slots without an observer">Visits to book</CardTitle>
             {toBook.length === 0 ? <Empty title="Nothing to book" icon="check" /> : toBook.map((v: any) => (
-              <Link key={v.id} href={`/visits/new?visit=${v.id}`} className={cx("mb-2 flex items-center justify-between rounded-lg border border-dashed border-[#F5DDAF] bg-tier3-bg/50 p-3 text-[13px]")}>
-                <span>{visitLabel(v)} · {v.classroom?.name}<span className="block text-[12px] text-ink-500">{fmtDateTime(v.scheduled_for)}</span></span>
+              <Link key={v.id} href={`/visits/new?visit=${v.id}`} className={cx("mb-2 flex items-center justify-between rounded-lg border border-dashed border-[#F5DDAF] bg-tier3-bg/50 p-3 text-[13.5px]")}>
+                <span>{visitLabel(v)} · {v.classroom?.name}<span className="block text-[12.5px] text-ink-500">{fmtDateTime(v.scheduled_for)}</span></span>
                 <span className="font-medium text-brand">Book →</span>
               </Link>
             ))}

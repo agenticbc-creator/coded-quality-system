@@ -25,21 +25,21 @@ export function FeedbackForm({ options, reasons }: { options: Option[]; reasons:
         </select>
       </Field>
       <div>
-        <span className="mb-1.5 block text-[12.5px] font-medium text-ink-600">Type</span>
+        <span className="mb-1.5 block text-[13px] font-medium text-ink-600">Type</span>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[["praise", "Praise"], ["coaching", "Coaching point"], ["concern", "Concern"], ["incident", "Incident"]].map(([k, l]) => (
             <button key={k} type="button" onClick={() => { setType(k); setSeverity(k === "praise" ? "positive" : k === "incident" ? "serious" : "minor"); }}
-              className={cx("rounded-lg px-3 py-2.5 text-[13px] font-medium ring-1 ring-inset", type === k ? "bg-navy text-white ring-navy" : "bg-white text-ink-600 ring-line")}>{l}</button>
+              className={cx("rounded-lg px-3 py-2.5 text-[13.5px] font-medium ring-1 ring-inset", type === k ? "bg-navy text-white ring-navy" : "bg-white text-ink-600 ring-line")}>{l}</button>
           ))}
         </div>
       </div>
       {type !== "praise" && (
         <div>
-          <span className="mb-1.5 block text-[12.5px] font-medium text-ink-600">Severity</span>
+          <span className="mb-1.5 block text-[13px] font-medium text-ink-600">Severity</span>
           <div className="grid grid-cols-3 gap-2">
             {[["minor", "Minor"], ["serious", "Serious"], ["red_flag", "Red flag"]].map(([k, l]) => (
               <button key={k} type="button" onClick={() => setSeverity(k)}
-                className={cx("rounded-lg px-3 py-2 text-[13px] font-medium ring-1 ring-inset", severity === k ? (k === "red_flag" ? "bg-tier4 text-white ring-tier4" : "bg-navy text-white ring-navy") : "bg-white text-ink-600 ring-line")}>{l}</button>
+                className={cx("rounded-lg px-3 py-2 text-[13.5px] font-medium ring-1 ring-inset", severity === k ? (k === "red_flag" ? "bg-tier4 text-white ring-tier4" : "bg-navy text-white ring-navy") : "bg-white text-ink-600 ring-line")}>{l}</button>
             ))}
           </div>
         </div>
@@ -53,7 +53,7 @@ export function FeedbackForm({ options, reasons }: { options: Option[]; reasons:
         <textarea name="body" rows={4} required className={input} />
       </Field>
       <div className="flex items-center justify-between gap-3">
-        <span className="text-[12px] text-ink-500">Private by default — only the segment owner can share it.</span>
+        <span className="text-[12.5px] text-ink-500">Private by default — only the segment owner can share it.</span>
         <Submit icon="pen">Log feedback</Submit>
       </div>
     </ActionForm>

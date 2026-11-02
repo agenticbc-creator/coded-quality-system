@@ -18,6 +18,13 @@ const json = (f: FormData, k: string) => {
   return v ? JSON.parse(v) : null;
 };
 
+/** The database's migration level, from the settings table (0009 writes it). Lets the screens light up new features once a migration is applied. */
+export async function schemaVersion(): Promise<number> {
+  const supabase = await db();
+  const { data } = await supabase.from("settings").select("value").eq("key", "schema_version").maybeSingle();
+  return Number((data?.value as any)?.v ?? 8);
+}
+
 async function call(fn: string, args: Record<string, unknown>, paths: string[], message: string): Promise<ActionResult & { data?: unknown }> {
   const supabase = await db();
   const { data, error } = await supabase.rpc(fn, args);
@@ -182,9 +189,15 @@ export async function visitSubmit(_: ActionResult, f: FormData): Promise<ActionR
   return r;
 }
 export async function visitRelease(_: ActionResult, f: FormData) {
-  return call("visit_release", { p_visit: s(f, "visit"), p_decision: s(f, "decision"), p_summary: s(f, "summary"), p_one_thing: s(f, "one_thing"),
-    p_action_points: s(f, "action_points"), p_channel: s(f, "channel") }, ["/feedback/release", "/owner"],
-    s(f, "decision") === "keep_private" ? "Kept private (record only)." : "Released. It is on the educator's dashboard now.");
+  const args: Record<string, unknown> = { p_visit: s(f, "visit"), p_decision: s(f, "decision"), p_summary: s(f, "summary"), p_one_thing: s(f, "one_thing"),
+    p_action_points: s(f, "action_points"), p_channel: s(f, "channel") };
+  // Migration 0009 adds per-person One Thing and action points. Only send them once the database has it.
+  const people = String(f.get("people") ?? "").split(",").filter(Boolean);
+  if (people.length && (await schemaVersion()) >= 9) {
+    args.p_people = people.map((id) => ({ person: id, one_thing: s(f, `one_thing_${id}`), action_points: s(f, `action_points_${id}`), channel: s(f, `channel_${id}`) || s(f, "channel") }));
+  }
+  return call("visit_release", args, ["/feedback/release", "/owner"],
+    s(f, "decision") === "keep_private" ? "Kept private (record only)." : "Released. Each person sees their own feedback on their dashboard now.");
 }
 
 // ── Feedback any time ─────────────────────────────────────

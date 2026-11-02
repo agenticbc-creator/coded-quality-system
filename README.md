@@ -54,6 +54,26 @@ Defaults used for the PRD's open questions (editable in **System → Rules and d
 Everything marked **Draft for review** (TA, class and operations rubrics, 360° wording, JD checklist for TAs,
 accountability formula, short / long QA plans, vetting scorecard) was written for this build and needs Education sign-off.
 
+## Audit fixes (2 Nov 2026)
+
+The design now follows the **CODED Product Theme** (light): navy frame, electric `#3059FF` for actions only,
+Brand Blue `#004AA3` for selection, tiers in their own colours, Manrope + Space Mono + IBM Plex Sans Arabic
+self-hosted under `public/fonts`, and the "CODED × Quality" lockup.
+
+Screens (live now): loading, error and not-found screens; one menu item highlighted at a time; "Needs you"
+on the educator home, with the ERPNext panels moved into "My record"; three-level signals; a visit report that
+cannot be filed with items left unscored and opens only once accepted and near the start time; per-person
+One Thing and action points in the report; the report card filtered to its quarter; coordinator roles in the
+menu and a QA calendar at `/coordinator`; PRD codes removed from screen copy; "PRD coverage" for the system owner only.
+
+**Database: apply `supabase/migrations/0009_audit_fixes.sql`** (SQL editor, once). It closes the read-all
+tables to people without a record, fixes `plan_save`, keeps private note text out of the audit log, stops
+provisional scores unlocking Tier 1, scopes staffing and reminders, shows educators and leads released visits
+only (the composite now counts released visits only), enforces the visit-report rules in the database, adds
+per-person release (`visit_release(..., p_people)`), coordinator booking, and schedules the daily jobs with
+pg_cron at 06:00 Kuwait time. The release queue switches to one block per person by itself once
+`settings.schema_version` is 9. Also turn off **Allow new users to sign up** in Supabase Auth.
+
 ## Run it
 
 ```bash

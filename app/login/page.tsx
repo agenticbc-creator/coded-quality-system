@@ -39,15 +39,16 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
     <main className="grid min-h-screen lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
       <section className="blueprint relative flex flex-col justify-between overflow-hidden px-8 py-10 text-white lg:sticky lg:top-0 lg:h-screen lg:px-14 lg:py-14">
         <div className="flex items-center gap-4">
-          <Logo className="w-[132px]" />
-          <span className="border-l border-white/20 pl-4 text-[12px] font-semibold uppercase leading-tight tracking-[0.16em] text-white/70">Education Quality<br />and Approvals</span>
+          <Logo className="w-[120px]" />
+          <span aria-hidden="true" className="text-[24px] font-light text-[#879AC0]">×</span>
+          <span className="text-[22px] font-extrabold leading-tight tracking-[-0.01em]">Quality<small className="label-mono mt-1 block !text-[10.5px] !text-[#879AC0]">Education quality and approvals</small></span>
         </div>
 
         <div className="my-14 max-w-xl">
-          <div className="mb-5 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/60"><span className="h-[2px] w-6 bg-white/60" />Every classroom, every quarter</div>
+          <div className="mb-6 inline-flex items-center gap-2.5 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 font-mono text-[11.5px] uppercase tracking-[0.06em] text-[#A3B4D6]"><span className="h-[7px] w-[7px] rounded-full bg-[#8DA4FF] shadow-[0_0_0_4px_rgba(141,164,255,.16),0_0_14px_rgba(141,164,255,.7)]" />Every classroom, every quarter</div>
           <h1 className="text-[40px] font-extrabold leading-[1.04] tracking-[-0.03em] lg:text-[54px]">
             Nobody teaches<br />without approval.
-            <span className="mt-2 block text-[#7FB0EE]">Everyone sees how<br className="hidden lg:block" /> they are doing.</span>
+            <span className="mt-2 block text-[#8DA4FF]">Everyone sees how<br className="hidden lg:block" /> they are doing.</span>
           </h1>
           <p className="mt-6 max-w-md text-[15px] leading-relaxed text-white/70">
             Content and people approvals, classroom shadowing and QA, composite scores and the CODED Certified Trainer Program, in one place.
@@ -56,39 +57,39 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
             {[["50%", "QA"], ["20%", "Ops QA"], ["20%", "360°"], ["10%", "Account."]].map(([v, l]) => (
               <div key={l} className="border-r border-white/10 px-3 first:pl-0 last:border-0">
                 <dt className="text-[24px] font-bold tabular-nums tracking-tight">{v}</dt>
-                <dd className="text-[11.5px] text-white/55">{l}</dd>
+                <dd className="text-[12px] text-white/55">{l}</dd>
               </div>
             ))}
           </dl>
         </div>
-        <p className="text-[12px] text-white/45">Standalone build on sample data · ready to move into CODED Portal v2.</p>
+        <p className="text-[13px] text-[#879AC0]">Sample data · every person shown is fictional.</p>
       </section>
 
       <section className="flex items-center justify-center bg-canvas px-5 py-10 lg:px-12">
         <div className="w-full max-w-[720px]">
-          <Logo tone="navy" className="mb-8 w-[96px] lg:hidden" />
+          <div className="mb-8 text-navy lg:hidden"><Logo className="w-[96px]" /></div>
           {error === "no-profile" && (
-            <div className="mb-4 rounded-lg bg-tier4-bg px-4 py-3 text-[13px] text-[#7A1F1A]">Your account has no profile in the quality system yet. Ask the system owner to add you.</div>
+            <div className="mb-4 rounded-lg bg-tier4-bg px-4 py-3 text-[13.5px] text-[#7A1F1A]">Your account has no profile in the quality system yet. Ask the system owner to add you.</div>
           )}
           {demo && (
             <>
-              <h2 className="text-[24px] font-bold tracking-tight text-navy">Pick a person to explore as</h2>
-              <p className="mt-1 text-[14px] text-ink-500">Each person sees only what their role allows. All names and numbers are examples.</p>
+              <h2 className="text-[26px] font-extrabold tracking-[-0.03em] text-ink">Pick a person to explore as</h2>
+              <p className="mt-1 text-[14.5px] text-ink-500">Each person sees only what their role allows. All names and numbers are examples.</p>
               <ActionForm action={signIn} className="mt-6 space-y-6">
                 {GROUPS.map((g) => (
                   <div key={g.title}>
-                    <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-500"><span className="h-[2px] w-4 bg-brand" />{g.title}</div>
+                    <div className="label-mono mb-2">{g.title}</div>
                     <div className="grid gap-2 sm:grid-cols-2">
                       {g.people.map((p) => (
                         <button key={p.key} type="submit" name="persona" value={p.key}
-                          className="group flex items-center gap-3 rounded-xl border border-line bg-white p-3 text-left transition hover:-translate-y-0.5 hover:border-navy hover:shadow-lift">
-                          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-canvas text-[13px] font-bold text-navy transition group-hover:bg-navy group-hover:text-white">
+                          className="group flex items-center gap-3 rounded-xl border border-line bg-white p-3 text-left transition hover:-translate-y-0.5 hover:border-brand hover:shadow-lift">
+                          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-canvas text-[13.5px] font-bold text-navy transition group-hover:bg-navy group-hover:text-white">
                             {p.name.split(" ").map((x) => x[0]).slice(0, 2).join("")}
                           </span>
                           <span className="min-w-0 flex-1">
-                            <span className="block text-[13.5px] font-semibold text-navy">{p.name}</span>
-                            <span className="block text-[12px] font-medium text-brand">{p.role}</span>
-                            <span className="block truncate text-[11.5px] text-ink-500">{p.note}</span>
+                            <span className="block text-[14px] font-semibold text-navy">{p.name}</span>
+                            <span className="block text-[12.5px] font-medium text-brand">{p.role}</span>
+                            <span className="block truncate text-[12px] text-ink-500">{p.note}</span>
                           </span>
                           <Icon name="arrow" className="h-4 w-4 text-ink-300 transition group-hover:translate-x-0.5 group-hover:text-navy" />
                         </button>
@@ -97,7 +98,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
                   </div>
                 ))}
               </ActionForm>
-              <div className="my-8 flex items-center gap-3 text-[11.5px] uppercase tracking-widest text-ink-400"><span className="h-px flex-1 bg-line" />or<span className="h-px flex-1 bg-line" /></div>
+              <div className="my-8 flex items-center gap-3 text-[12px] uppercase tracking-widest text-ink-400"><span className="h-px flex-1 bg-line" />or<span className="h-px flex-1 bg-line" /></div>
             </>
           )}
           <h2 className="text-[16px] font-semibold text-navy">Sign in with your account</h2>

@@ -49,21 +49,21 @@ export default async function OwnerHome() {
       <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <div className="space-y-6">
           <Card>
-            <CardTitle icon="chart" sub={`${periodLabel(period)} · target 90, floor 85`} right={<Link href="/scores" className="text-[12.5px] font-medium text-brand">All scores →</Link>}>Tier spread</CardTitle>
+            <CardTitle icon="chart" sub={`${periodLabel(period)} · target 90, floor 85`} right={<Link href="/scores" className="text-[13px] font-medium text-brand">All scores →</Link>}>Tier spread</CardTitle>
             <div className="grid grid-cols-4 gap-2">
               {tiers.map((n, i) => (
                 <div key={i} className="rounded-lg border border-line p-3 text-center">
                   <div className="tabular-nums text-[24px] font-semibold" style={{ color: tierColor([95, 87, 80, 70][i]) }}>{n}</div>
-                  <div className="text-[11.5px] text-ink-500">{TIER[(i + 1) as 1].label}</div>
+                  <div className="text-[12px] text-ink-500">{TIER[(i + 1) as 1].label}</div>
                 </div>
               ))}
             </div>
             <ul className="mt-4 divide-y divide-line/70">
               {myComps.sort((a: any, b: any) => Number(a.total) - Number(b.total)).map((c: any) => (
                 <li key={c.id} className="grid grid-cols-[minmax(0,1fr)_120px_auto] items-center gap-3 py-2.5">
-                  <Link href={`/people/${c.person.id}`} className="truncate text-[13.5px] font-medium text-navy hover:text-brand">{c.person.full_name} <span className="text-[11.5px] font-normal text-ink-500">{c.role === "ta" ? "TA" : "Instructor"}</span></Link>
+                  <Link href={`/people/${c.person.id}`} className="truncate text-[14px] font-medium text-navy hover:text-brand">{c.person.full_name} <span className="text-[12px] font-normal text-ink-500">{c.role === "ta" ? "TA" : "Instructor"}</span></Link>
                   <ScoreBar value={c.total} />
-                  <span className="flex items-center gap-2"><span className="w-10 text-right tabular-nums text-[13px] font-semibold" style={{ color: tierColor(c.total) }}>{num(c.total)}</span><TierBadge tier={c.tier} provisional={c.provisional} /></span>
+                  <span className="flex items-center gap-2"><span className="w-10 text-right tabular-nums text-[13.5px] font-semibold" style={{ color: tierColor(c.total) }}>{num(c.total)}</span><TierBadge tier={c.tier} provisional={c.provisional} /></span>
                 </li>
               ))}
             </ul>
@@ -78,7 +78,7 @@ export default async function OwnerHome() {
             };
             return (
               <Card key={c.id}>
-                <CardTitle icon="layers" sub={`${c.classrooms.length} classrooms on the same content · live signals and QA side by side`} right={<Link href={`/cohorts/${c.id}`} className="text-[12.5px] font-medium text-brand">Open cohort →</Link>}>{c.name}</CardTitle>
+                <CardTitle icon="layers" sub={`${c.classrooms.length} classrooms on the same content · live signals and QA side by side`} right={<Link href={`/cohorts/${c.id}`} className="text-[13px] font-medium text-brand">Open cohort →</Link>}>{c.name}</CardTitle>
                 <div className="mb-5 grid gap-2 sm:grid-cols-3">
                   {c.classrooms.sort((a: any, b: any) => (a.name > b.name ? 1 : -1)).map((cl: any) => {
                     const q = qa(cl);
@@ -86,10 +86,10 @@ export default async function OwnerHome() {
                     const alerts = s ? Object.values(s.alerts ?? {}).filter(Boolean).length : 0;
                     return (
                       <div key={cl.id} className="rounded-lg border border-line p-3">
-                        <div className="text-[13px] font-semibold text-navy">{cl.name}</div>
-                        <div className="text-[11.5px] text-ink-500">{cl.classroom_staff.find((x: any) => x.role === "instructor")?.person.full_name}</div>
-                        <div className="mt-2 flex items-baseline justify-between"><span className="text-[11.5px] text-ink-500">Class QA</span><span className="tabular-nums font-semibold" style={{ color: tierColor(q) }}>{num(q)}</span></div>
-                        <div className="flex items-baseline justify-between"><span className="text-[11.5px] text-ink-500">App alerts</span><span className={cx("tabular-nums font-semibold", alerts ? "text-tier4" : "text-tier1")}>{alerts}</span></div>
+                        <div className="text-[13.5px] font-semibold text-navy">{cl.name}</div>
+                        <div className="text-[12px] text-ink-500">{cl.classroom_staff.find((x: any) => x.role === "instructor")?.person.full_name}</div>
+                        <div className="mt-2 flex items-baseline justify-between"><span className="text-[12px] text-ink-500">Class QA</span><span className="tabular-nums font-semibold" style={{ color: tierColor(q) }}>{num(q)}</span></div>
+                        <div className="flex items-baseline justify-between"><span className="text-[12px] text-ink-500">App alerts</span><span className={cx("tabular-nums font-semibold", alerts ? "text-tier4" : "text-tier1")}>{alerts}</span></div>
                       </div>
                     );
                   })}
@@ -106,7 +106,7 @@ export default async function OwnerHome() {
               <CardTitle icon="flag" sub="Outside the 48-hour feedback SLA">Red flags</CardTitle>
               <ul className="space-y-2">
                 {reds.map((r: any) => (
-                  <li key={r.id} className="rounded-lg bg-tier4-bg px-3 py-2 text-[13px]"><b>{r.subject.full_name}</b> — {r.red_flag_reason}<div className="text-[11.5px] text-ink-500">{fmtDateTime(r.created_at)}</div></li>
+                  <li key={r.id} className="rounded-lg bg-tier4-bg px-3 py-2 text-[13.5px]"><b>{r.subject.full_name}</b> — {r.red_flag_reason}<div className="text-[12px] text-ink-500">{fmtDateTime(r.created_at)}</div></li>
                 ))}
               </ul>
               <div className="mt-3"><LinkButton href="/feedback/release" variant="secondary">Review now</LinkButton></div>
@@ -117,7 +117,7 @@ export default async function OwnerHome() {
             {myApprovals.length === 0 ? <Empty title="Nothing waiting" icon="check" /> : (
               <ul className="divide-y divide-line/70">
                 {myApprovals.map((s: any) => (
-                  <li key={s.id} className="flex items-center justify-between py-2.5 text-[13px]">
+                  <li key={s.id} className="flex items-center justify-between py-2.5 text-[13.5px]">
                     <span><b className="text-navy">{s.pipeline.person.full_name}</b> · {STEP[s.step].label}</span>
                     <Link href={`/approvals/people/${s.pipeline.id}`} className="text-brand">Open →</Link>
                   </li>
@@ -129,7 +129,7 @@ export default async function OwnerHome() {
             <CardTitle icon="layers" sub="A cohort starts only when content is locked and every classroom is cleared">Cohorts in setup</CardTitle>
             {setup.length === 0 ? <Empty title="No cohorts in setup" /> : setup.map((c: any) => (
               <Link key={c.id} href={`/cohorts/${c.id}`} className="flex items-center justify-between rounded-lg border border-line p-3 hover:bg-canvas">
-                <span><span className="block text-[13.5px] font-semibold text-navy">{c.name}</span><span className="text-[12px] text-ink-500">Starts {fmtDate(c.start_date)} · {c.classrooms.length} classrooms</span></span>
+                <span><span className="block text-[14px] font-semibold text-navy">{c.name}</span><span className="text-[12.5px] text-ink-500">Starts {fmtDate(c.start_date)} · {c.classrooms.length} classrooms</span></span>
                 <Badge tone="amber">Setup</Badge>
               </Link>
             ))}
@@ -137,17 +137,17 @@ export default async function OwnerHome() {
           <Card>
             <CardTitle icon="clipboard" sub="Visits the rotation could not fill or an observer declined">Visits needing an observer</CardTitle>
             {unassigned.length === 0 ? <Empty title="Every visit has an observer" icon="check" /> : unassigned.map((v: any) => (
-              <Link key={v.id} href={`/visits/new?visit=${v.id}`} className="mb-2 flex items-center justify-between rounded-lg border border-dashed border-[#F5DDAF] bg-tier3-bg/50 p-3 text-[13px]">
-                <span>{visitLabel(v)} · {v.classroom?.name}<span className="block text-[11.5px] text-ink-500">{fmtDateTime(v.scheduled_for)}</span></span>
+              <Link key={v.id} href={`/visits/new?visit=${v.id}`} className="mb-2 flex items-center justify-between rounded-lg border border-dashed border-[#F5DDAF] bg-tier3-bg/50 p-3 text-[13.5px]">
+                <span>{visitLabel(v)} · {v.classroom?.name}<span className="block text-[12px] text-ink-500">{fmtDateTime(v.scheduled_for)}</span></span>
                 <span className="text-brand">Assign →</span>
               </Link>
             ))}
             {upcoming.length > 0 && (
               <>
-                <div className="mb-1 mt-4 text-[11.5px] font-semibold uppercase tracking-wider text-ink-500">Upcoming</div>
+                <div className="mb-1 mt-4 text-[12px] font-semibold uppercase tracking-wider text-ink-500">Upcoming</div>
                 <ul className="divide-y divide-line/70">
                   {upcoming.map((v: any) => (
-                    <li key={v.id} className="flex items-center justify-between py-2 text-[12.5px]">
+                    <li key={v.id} className="flex items-center justify-between py-2 text-[13px]">
                       <span>{visitLabel(v)} · {v.classroom?.name}<span className="block text-ink-500">{v.assignee?.full_name} · {fmtDateTime(v.scheduled_for)}</span></span>
                       <Badge tone={v.status === "accepted" ? "green" : "neutral"}>{v.status}</Badge>
                     </li>
@@ -160,16 +160,16 @@ export default async function OwnerHome() {
             <Card>
               <CardTitle icon="flag">Open plans</CardTitle>
               {(plans ?? []).map((p: any) => (
-                <Link key={p.id} href={`/people/${p.person.id}`} className="flex items-center justify-between py-1.5 text-[13px]">
+                <Link key={p.id} href={`/people/${p.person.id}`} className="flex items-center justify-between py-1.5 text-[13.5px]">
                   <span>{p.person.full_name} · {p.kind === "coaching" ? "Coaching Plan" : "Improvement Plan"}</span>
-                  <span className={cx("text-[12px]", new Date(p.due) < new Date() ? "text-tier4" : "text-ink-500")}>due {fmtDate(p.due)}</span>
+                  <span className={cx("text-[12.5px]", new Date(p.due) < new Date() ? "text-tier4" : "text-ink-500")}>due {fmtDate(p.due)}</span>
                 </Link>
               ))}
             </Card>
           )}
         </div>
       </div>
-      <p className="mt-8 flex items-center gap-1.5 text-[12px] text-ink-500"><Icon name="eye" className="h-3.5 w-3.5" /> The GM sees every decision you make here, read only.</p>
+      <p className="mt-8 flex items-center gap-1.5 text-[12.5px] text-ink-500"><Icon name="eye" className="h-3.5 w-3.5" /> The GM sees every decision you make here, read only.</p>
     </div>
   );
 }

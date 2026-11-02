@@ -10,7 +10,7 @@ import { SEGMENT, ago, fmtDateTime } from "@/lib/format";
 export const metadata = { title: "System" };
 
 const TABS = [["sync", "Sync health"], ["scoring", "Scoring templates"], ["templates", "QA templates"], ["rules", "Rules and drafts"], ["access", "Roles and access"], ["audit", "Audit log"]] as const;
-const ROLES = ["segment_owner", "education_principal", "senior_instructor", "education_officer", "operations", "instructor", "lead_instructor", "ta", "content_creator", "hr", "gm", "system_owner"];
+const ROLES = ["segment_owner", "education_principal", "senior_instructor", "education_officer", "operations", "program_coordinator", "education_coordinator", "instructor", "lead_instructor", "ta", "content_creator", "hr", "gm", "system_owner"];
 
 export default async function Admin({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const me = await getMe();
@@ -24,7 +24,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
         sub="Runs the system: sync health, scoring weights and tiers, QA templates and rubric versions, roles and access, and the audit log. Does not approve people or release feedback." />
       <div className="-mx-1 mb-6 flex gap-1 overflow-x-auto px-1">
         {TABS.map(([k, l]) => (
-          <Link key={k} href={`/admin?tab=${k}`} className={cx("shrink-0 rounded-lg px-3.5 py-2 text-[13px] font-medium", tab === k ? "bg-navy text-white" : "text-ink-600 hover:bg-white")}>{l}</Link>
+          <Link key={k} href={`/admin?tab=${k}`} className={cx("shrink-0 rounded-lg px-3.5 py-2 text-[13.5px] font-medium", tab === k ? "bg-navy text-white" : "text-ink-600 hover:bg-white")}>{l}</Link>
         ))}
       </div>
       {tab === "sync" && <Sync supabase={supabase} owner={owner} />}
@@ -47,12 +47,12 @@ async function Sync({ supabase, owner }: { supabase: any; owner: boolean }) {
         {latest.map((r: any, i) => (
           <Card key={i}>
             <div className="flex items-center justify-between">
-              <span className="text-[13px] font-semibold text-navy">{label[["erpnext", "coded_app", "surveys"][i]]}</span>
+              <span className="text-[13.5px] font-semibold text-navy">{label[["erpnext", "coded_app", "surveys"][i]]}</span>
               <span className={cx("h-2.5 w-2.5 rounded-full", !r ? "bg-ink-300" : r.status === "ok" ? "bg-tier1" : r.status === "warning" ? "bg-tier3" : "bg-tier4")} />
             </div>
             <div className="mt-2 tabular-nums text-[22px] font-semibold text-navy">{r?.records ?? "—"}</div>
-            <div className="text-[12px] text-ink-500">records · last run {r ? ago(r.finished_at) : "never"}</div>
-            {r?.message && <div className="mt-2 text-[12px] text-ink-600">{r.message}</div>}
+            <div className="text-[12.5px] text-ink-500">records · last run {r ? ago(r.finished_at) : "never"}</div>
+            {r?.message && <div className="mt-2 text-[12.5px] text-ink-600">{r.message}</div>}
           </Card>
         ))}
       </div>
@@ -128,28 +128,28 @@ async function Templates({ supabase }: { supabase: any }) {
             <div className="grid gap-4 md:grid-cols-3">
               {Object.entries(t.rubric as Record<string, any>).map(([role, r]) => (
                 <div key={role} className="rounded-lg border border-line p-3">
-                  <div className="mb-2 text-[12.5px] font-semibold text-navy">{r.label ?? role}</div>
+                  <div className="mb-2 text-[13px] font-semibold text-navy">{r.label ?? role}</div>
                   {r.sections?.map((s: any) => (
                     <div key={s.key} className="mb-2 last:mb-0">
-                      <div className="text-[11.5px] font-semibold uppercase tracking-wide text-ink-500">{s.label} · {s.items.reduce((a: number, i: any) => a + i.max, 0)}</div>
-                      {s.items.map((i: any) => <div key={i.key} className="flex justify-between gap-2 text-[12px]"><span>{i.label}</span><span className="tabular-nums text-ink-500">{i.max}</span></div>)}
+                      <div className="text-[12px] font-semibold uppercase tracking-wide text-ink-500">{s.label} · {s.items.reduce((a: number, i: any) => a + i.max, 0)}</div>
+                      {s.items.map((i: any) => <div key={i.key} className="flex justify-between gap-2 text-[12.5px]"><span>{i.label}</span><span className="tabular-nums text-ink-500">{i.max}</span></div>)}
                     </div>
                   ))}
                 </div>
               ))}
             </div>
-          ) : <ul className="grid gap-1 text-[12.5px] sm:grid-cols-2">{t.rubric.checklist.map((c: any) => <li key={c.key}>• {c.label}</li>)}</ul>}
+          ) : <ul className="grid gap-1 text-[13px] sm:grid-cols-2">{t.rubric.checklist.map((c: any) => <li key={c.key}>• {c.label}</li>)}</ul>}
           {t.status !== "retired" && (
             <details className="mt-3">
-              <summary className="cursor-pointer text-[12.5px] font-medium text-brand">Edit as a new version</summary>
+              <summary className="cursor-pointer text-[13px] font-medium text-brand">Edit as a new version</summary>
               <ActionForm action={qaTemplateSave} className="mt-3 space-y-3">
                 <input type="hidden" name="key" value={t.key} /><input type="hidden" name="kind" value={t.kind} /><input type="hidden" name="focus" value={t.focus} />
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Field label="Name"><input name="name" defaultValue={t.name} className={input} /></Field>
                   <Field label="Subjects scored (comma separated)"><input name="subjects" defaultValue={t.subjects.join(", ")} className={input} /></Field>
                 </div>
-                <Field label="Rubric (JSON)"><textarea name="rubric" rows={10} defaultValue={JSON.stringify(t.rubric, null, 2)} className={`${input} tabular-nums text-[12px]`} /></Field>
-                <label className="flex items-center gap-2 text-[12.5px]"><input type="checkbox" name="special" defaultChecked={t.is_special} /> Master class or challenge template</label>
+                <Field label="Rubric (JSON)"><textarea name="rubric" rows={10} defaultValue={JSON.stringify(t.rubric, null, 2)} className={`${input} tabular-nums text-[12.5px]`} /></Field>
+                <label className="flex items-center gap-2 text-[13px]"><input type="checkbox" name="special" defaultChecked={t.is_special} /> Master class or challenge template</label>
                 <Submit size="sm">Save version {t.version + 1}</Submit>
               </ActionForm>
             </details>
@@ -169,20 +169,20 @@ async function Rules({ supabase, owner }: { supabase: any; owner: boolean }) {
         <Card key={s.key}>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="text-[14px] font-semibold text-navy">{s.label}</div>
-              {s.note && <p className="mt-0.5 text-[12.5px] text-ink-500">{s.note}</p>}
+              <div className="text-[14.5px] font-semibold text-navy">{s.label}</div>
+              {s.note && <p className="mt-0.5 text-[13px] text-ink-500">{s.note}</p>}
             </div>
             <StatusBadge status={s.status} />
           </div>
           <details className="mt-2">
-            <summary className="cursor-pointer text-[12.5px] text-brand">Value{owner ? " · edit" : ""}</summary>
+            <summary className="cursor-pointer text-[13px] text-brand">Value{owner ? " · edit" : ""}</summary>
             {owner ? (
               <ActionForm action={settingsSet} className="mt-2 space-y-2">
                 <input type="hidden" name="key" value={s.key} />
-                <textarea name="value" rows={Math.min(14, JSON.stringify(s.value, null, 2).split("\n").length + 1)} defaultValue={JSON.stringify(s.value, null, 2)} className={`${input} tabular-nums text-[12px]`} />
+                <textarea name="value" rows={Math.min(14, JSON.stringify(s.value, null, 2).split("\n").length + 1)} defaultValue={JSON.stringify(s.value, null, 2)} className={`${input} tabular-nums text-[12.5px]`} />
                 <div className="flex items-center gap-2"><select name="status" defaultValue={s.status} className={`${input} w-auto`}><option value="from_notion">From Notion</option><option value="decided">Decided</option><option value="default">Assumption</option><option value="draft_review">Draft for review</option></select><Submit size="sm">Save</Submit></div>
               </ActionForm>
-            ) : <pre className="mt-2 overflow-x-auto rounded-lg bg-canvas p-3 text-[12px]">{JSON.stringify(s.value, null, 2)}</pre>}
+            ) : <pre className="mt-2 overflow-x-auto rounded-lg bg-canvas p-3 text-[12.5px]">{JSON.stringify(s.value, null, 2)}</pre>}
           </details>
         </Card>
       ))}
@@ -200,17 +200,17 @@ async function Access({ supabase, owner }: { supabase: any; owner: boolean }) {
           <ActionForm action={personRoles}>
             <input type="hidden" name="person" value={p.id} />
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div><div className="text-[14px] font-semibold text-navy">{p.full_name}</div><div className="text-[12px] text-ink-500">{p.email}{p.erp_supplier_id ? ` · ${p.erp_supplier_id}` : ""}</div></div>
-              <label className="flex items-center gap-1.5 text-[12.5px]"><input type="checkbox" name="full_timer" defaultChecked={p.is_full_timer} disabled={!owner} /> Full-timer</label>
+              <div><div className="text-[14.5px] font-semibold text-navy">{p.full_name}</div><div className="text-[12.5px] text-ink-500">{p.email}{p.erp_supplier_id ? ` · ${p.erp_supplier_id}` : ""}</div></div>
+              <label className="flex items-center gap-1.5 text-[13px]"><input type="checkbox" name="full_timer" defaultChecked={p.is_full_timer} disabled={!owner} /> Full-timer</label>
             </div>
             <div className="mt-3 flex flex-wrap gap-1.5">
               {ROLES.map((r) => (
-                <label key={r} className="flex items-center gap-1.5 rounded-full bg-canvas px-2.5 py-1 text-[12px] ring-1 ring-line">
+                <label key={r} className="flex items-center gap-1.5 rounded-full bg-canvas px-2.5 py-1 text-[12.5px] ring-1 ring-line">
                   <input type="checkbox" name="roles" value={r} defaultChecked={p.roles.includes(r)} disabled={!owner} /> {r.replace(/_/g, " ")}
                 </label>
               ))}
             </div>
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px] text-ink-500">Owns segments:
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-[12.5px] text-ink-500">Owns segments:
               {Object.entries(SEGMENT).map(([k, v]) => <label key={k} className="flex items-center gap-1"><input type="checkbox" name="owned" value={k} defaultChecked={p.owned_segments.includes(k)} disabled={!owner} /> {v}</label>)}
               {owner && <span className="ml-auto"><Submit size="sm" variant="secondary">Save access</Submit></span>}
             </div>
@@ -225,15 +225,15 @@ async function Audit({ supabase }: { supabase: any }) {
   const { data } = await supabase.from("audit_log").select("*, actor:people(full_name)").order("at", { ascending: false }).limit(150);
   return (
     <Card pad={false} className="px-5 pb-2 pt-4">
-      <CardTitle icon="shield" sub="Who did what, when, with which version (R1). 360° review scores are never logged against the reviewer.">Audit log</CardTitle>
+      <CardTitle icon="shield" sub="Who did what, when, with which version. 360° review scores are never logged against the reviewer.">Audit log</CardTitle>
       <Table head={["When", "Who", "Action", "Entity", "Details"]}>
         {(data ?? []).map((a: any) => (
           <tr key={a.id}>
             <td className={`${td} whitespace-nowrap`}>{fmtDateTime(a.at)}</td>
             <td className={td}>{a.actor?.full_name ?? <span className="flex items-center gap-1 text-ink-500"><Icon name="settings" className="h-3.5 w-3.5" /> System</span>}</td>
-            <td className={`${td} tabular-nums text-[12px]`}>{a.action}</td>
+            <td className={`${td} tabular-nums text-[12.5px]`}>{a.action}</td>
             <td className={td}>{a.entity}</td>
-            <td className={`${td} max-w-[320px] truncate tabular-nums text-[11.5px] text-ink-500`}>{a.data ? JSON.stringify(a.data) : ""}</td>
+            <td className={`${td} max-w-[320px] truncate tabular-nums text-[12px] text-ink-500`}>{a.data ? JSON.stringify(a.data) : ""}</td>
           </tr>
         ))}
       </Table>

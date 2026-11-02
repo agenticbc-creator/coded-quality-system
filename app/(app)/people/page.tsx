@@ -55,7 +55,7 @@ export default async function People() {
                 <td className={td}><Badge tone={p.approval_status === "cleared" ? "green" : p.approval_status === "in_pipeline" ? "amber" : "neutral"}>{p.approval_status === "cleared" ? "Cleared" : p.approval_status === "in_pipeline" ? "In pipeline" : p.approval_status.replace("_", " ")}</Badge></td>
                 <td className={td}>{c ? <span className="flex items-center gap-2"><span className="tabular-nums font-semibold" style={{ color: tierColor(c.total) }}>{num(c.total)}</span><TierBadge tier={c.tier} provisional={c.provisional} /></span> : <span className="text-ink-400">—</span>}</td>
                 <td className={td}>
-                  {hr ? (k ? <span className="tabular-nums text-[12.5px]">{k.rate ? `${k.rate} KWD / ${k.rate_type === "hourly" ? "hr" : k.rate_type === "daily" ? "day" : "contract"}` : "Fixed"}</span> : <span className="text-ink-400">No active contract</span>)
+                  {hr ? (k ? <span className="tabular-nums text-[13px]">{k.rate ? `${k.rate} KWD / ${k.rate_type === "hourly" ? "hr" : k.rate_type === "daily" ? "day" : "contract"}` : "Fixed"}</span> : <span className="text-ink-400">No active contract</span>)
                     : pl ? <Badge tone="amber">{pl.kind === "coaching" ? "Coaching Plan" : "Improvement Plan"}</Badge> : <span className="text-ink-400">—</span>}
                 </td>
               </tr>
@@ -69,8 +69,8 @@ export default async function People() {
           <div key={p.id} className="flex items-center gap-3 rounded-xl border border-line bg-white p-3 shadow-card">
             <Avatar name={p.full_name} size={34} tone="navy" />
             <div className="min-w-0">
-              <div className="truncate text-[13.5px] font-semibold text-navy">{p.full_name}</div>
-              <div className="truncate text-[12px] text-ink-500">{p.roles.map((r: string) => r.replace(/_/g, " ")).join(", ")}{p.owned_segments.length ? ` · ${p.owned_segments.map((s: string) => SEGMENT[s]).join(", ")}` : ""}</div>
+              <div className="truncate text-[14px] font-semibold text-navy">{p.full_name}</div>
+              <div className="truncate text-[12.5px] text-ink-500">{p.roles.map((r: string) => r.replace(/_/g, " ")).join(", ")}{p.owned_segments.length ? ` · ${p.owned_segments.map((s: string) => SEGMENT[s]).join(", ")}` : ""}</div>
             </div>
           </div>
         ))}

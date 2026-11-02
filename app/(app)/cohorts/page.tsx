@@ -20,7 +20,7 @@ export default async function Cohorts() {
   const groups: [string, string][] = [["live", "Live"], ["setup", "In setup"], ["closed", "Closed"]];
   return (
     <div>
-      <PageHeader eyebrow="W2 · setting up a cohort" title="Cohorts"
+      <PageHeader eyebrow="Setting up a cohort" title="Cohorts"
         sub="A cohort can run several classrooms on the same content, each with its own instructor and TAs, and at least one overseer for all of them."
         actions={canCreate ? (
           <Disclosure label="New cohort" variant="primary">
@@ -43,7 +43,7 @@ export default async function Cohorts() {
         if (!list.length) return null;
         return (
           <section key={st} className="mb-8">
-            <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-wider text-ink-500">{label} · {list.length}</h2>
+            <h2 className="mb-3 text-[13.5px] font-semibold uppercase tracking-wider text-ink-500">{label} · {list.length}</h2>
             <div className="grid gap-3 md:grid-cols-2">
               {list.map((c: any) => {
                 const overseer = c.cohort_roles.find((r: any) => r.role === "overseer");
@@ -53,16 +53,16 @@ export default async function Cohorts() {
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <div className="text-[15px] font-semibold text-navy">{c.name}</div>
-                        <div className="text-[12.5px] text-ink-500">{c.program.name} · {SEGMENT[c.program.segment_id]} · {fmtDate(c.start_date, { day: "numeric", month: "short" })} – {fmtDate(c.end_date)}</div>
+                        <div className="text-[13px] text-ink-500">{c.program.name} · {SEGMENT[c.program.segment_id]} · {fmtDate(c.start_date, { day: "numeric", month: "short" })} – {fmtDate(c.end_date)}</div>
                       </div>
                       <Badge tone={st === "live" ? "green" : st === "setup" ? "amber" : "neutral"}>{label}</Badge>
                     </div>
-                    <div className="mt-4 grid grid-cols-3 gap-2 text-[12px]">
+                    <div className="mt-4 grid grid-cols-3 gap-2 text-[12.5px]">
                       <span className="flex items-center gap-1.5 text-ink-600"><Icon name="layers" className="h-3.5 w-3.5" /> {c.classrooms.length} classroom{c.classrooms.length === 1 ? "" : "s"}</span>
                       <span className="flex items-center gap-1.5 text-ink-600"><Icon name="users" className="h-3.5 w-3.5" /> {instructors} instructor{instructors === 1 ? "" : "s"}</span>
                       <span className="flex items-center gap-1.5 text-ink-600"><Icon name={c.content ? "lock" : "alert"} className="h-3.5 w-3.5" /> {c.content ? `v${c.content_version} locked` : "No content"}</span>
                     </div>
-                    <div className="mt-2 text-[12px] text-ink-500">Overseer: {overseer?.person.full_name ?? <span className="text-tier4">not named</span>}</div>
+                    <div className="mt-2 text-[12.5px] text-ink-500">Overseer: {overseer?.person.full_name ?? <span className="text-tier4">not named</span>}</div>
                   </Link>
                 );
               })}

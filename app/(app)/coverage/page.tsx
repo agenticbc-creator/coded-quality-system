@@ -17,8 +17,8 @@ export default function Coverage() {
         </div>
         <div className="self-center">
           <div className="text-[20px] font-bold">{c.built} of {c.total} requirements are working in this build.</div>
-          <p className="mt-2 max-w-2xl text-[13.5px] leading-relaxed text-white/70">The {c.partial} partial items work end to end here, on sample data, and need an outside system for the last step: the live Portal v2 feed, writing into ERPNext, email delivery, the Trainer Learning Path API and the CODED App changes for who graded and who took attendance.</p>
-          <div className="mt-4 h-2 max-w-xl overflow-hidden bg-white/15"><div className="h-full bg-[#7FB0EE]" style={{ width: `${pct}%` }} /></div>
+          <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-white/70">The {c.partial} partial items work end to end here, on sample data, and need an outside system for the last step: the live Portal v2 feed, writing into ERPNext, email delivery, the Trainer Learning Path API and the CODED App changes for who graded and who took attendance.</p>
+          <div className="mt-4 h-2 max-w-xl overflow-hidden bg-white/15"><div className="h-full bg-[#8DA4FF]" style={{ width: `${pct}%` }} /></div>
         </div>
       </section>
       <div className="grid gap-5 lg:grid-cols-2">
@@ -26,18 +26,18 @@ export default function Coverage() {
           <Card key={g.key} pad={false}>
             <div className="flex items-center justify-between border-b border-line px-5 py-3">
               <h2 className="text-[14.5px] font-semibold text-navy">{g.title}</h2>
-              <span className="text-[12px] tabular-nums text-ink-500">{g.reqs.filter((r) => r.status === "built").length}/{g.reqs.length}</span>
+              <span className="text-[12.5px] tabular-nums text-ink-500">{g.reqs.filter((r) => r.status === "built").length}/{g.reqs.length}</span>
             </div>
             <ul className="divide-y divide-line">
               {g.reqs.map((r) => (
                 <li key={r.id} className="grid grid-cols-[48px_minmax(0,1fr)_auto] items-start gap-3 px-5 py-2.5">
-                  <span className="pt-0.5 text-[11.5px] font-bold tabular-nums text-brand">{r.id}</span>
+                  <span className="pt-0.5 text-[12px] font-bold tabular-nums text-brand">{r.id}</span>
                   <div className="min-w-0">
-                    <div className="text-[13px] font-medium text-ink">{r.title}</div>
-                    <div className="text-[11.5px] text-ink-500">{r.where}{r.note ? ` — ${r.note}` : ""}</div>
+                    <div className="text-[13.5px] font-medium text-ink">{r.title}</div>
+                    <div className="text-[12px] text-ink-500">{r.where}{r.note ? ` — ${r.note}` : ""}</div>
                   </div>
                   <span className="flex items-center gap-1.5">
-                    {r.priority && <span className="text-[10.5px] font-semibold text-ink-400">{r.priority}</span>}
+                    {r.priority && <span className="text-[11px] font-semibold text-ink-400">{r.priority}</span>}
                     <span className={cx("grid h-5 w-5 place-items-center", r.status === "built" ? "bg-tier1 text-white" : "bg-tier3-bg text-tier3")} title={r.status}>
                       <Icon name={r.status === "built" ? "check" : "clock"} className="h-3 w-3" strokeWidth={3} />
                     </span>
@@ -48,7 +48,7 @@ export default function Coverage() {
           </Card>
         ))}
       </div>
-      <div className="flex gap-3 text-[12px] text-ink-500"><Badge tone="green">Built</Badge> works here end to end · <Badge tone="amber">Partial</Badge> works here; the last step needs an outside system</div>
+      <div className="flex gap-3 text-[12.5px] text-ink-500"><Badge tone="green">Built</Badge> works here end to end · <Badge tone="amber">Partial</Badge> works here; the last step needs an outside system</div>
     </div>
   );
 }

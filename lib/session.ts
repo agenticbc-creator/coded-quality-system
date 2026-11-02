@@ -31,10 +31,15 @@ export const getMe = cache(async (): Promise<Person> => {
   return data as Person;
 });
 
-export const has = (me: Person, ...roles: string[]) => roles.some((r) => me.roles.includes(r));
+/** Role check. A program coordinator counts as operations everywhere (same rule as has_role in the database). */
+export const has = (me: Person, ...roles: string[]) => roles.some((r) => me.roles.includes(r) || (r === "operations" && me.roles.includes("program_coordinator")));
 export const isEducator = (me: Person) => has(me, "instructor", "ta");
 export const isOwner = (me: Person) => has(me, "segment_owner");
 export const isEducation = (me: Person) => has(me, "education_principal", "senior_instructor", "education_officer");
+/** Program coordinators run cohorts day to day with the same powers as the operations overseer. */
+export const isOps = (me: Person) => has(me, "operations", "program_coordinator");
+/** Education coordinators book, reassign and chase visits; they never see scores or private notes. */
+export const isEduCoordinator = (me: Person) => has(me, "education_coordinator");
 
 export type NavItem = { href: string; label: string; icon: string };
 
@@ -46,20 +51,21 @@ export function navFor(me: Person): { section: string; items: NavItem[] }[] {
   if (has(me, "cctp_candidate") && !isEducator(me)) home.push({ href: "/cctp", label: "My CCTP path", icon: "award" });
   if (isOwner(me)) home.push({ href: "/owner", label: "Segment overview", icon: "grid" });
   if (isEducation(me) && !isOwner(me)) home.push({ href: "/education", label: "Education home", icon: "compass" });
-  if (has(me, "operations")) home.push({ href: "/ops", label: "Today", icon: "sun" });
+  if (isOps(me)) home.push({ href: "/ops", label: "Today", icon: "sun" });
   if (has(me, "gm")) home.push({ href: "/overview", label: "Overview", icon: "eye" });
   if (has(me, "hr")) home.push({ href: "/people", label: "People", icon: "users" });
+  if (isEduCoordinator(me)) home.push({ href: "/coordinator", label: "QA calendar", icon: "calendar" });
   if (has(me, "system_owner")) home.push({ href: "/admin", label: "System", icon: "settings" });
-  const approver = has(me, "segment_owner", "education_principal", "senior_instructor", "education_officer", "operations", "hr", "gm", "system_owner", "content_creator");
+  const approver = (has(me, "segment_owner", "education_principal", "senior_instructor", "education_officer", "hr", "gm", "system_owner", "content_creator") || isOps(me) || isEduCoordinator(me));
   if (approver) home.push({ href: "/approvals", label: "Waiting on me", icon: "inbox" });
   home.push({ href: "/calendar", label: "Calendar", icon: "calendar" });
   out.push({ section: "Home", items: home });
 
   const quality: NavItem[] = [];
-  if (isOwner(me) || isEducation(me) || has(me, "operations")) quality.push({ href: "/visits", label: "Visits", icon: "clipboard" });
+  if (isOwner(me) || isEducation(me) || isOps(me) || isEduCoordinator(me)) quality.push({ href: "/visits", label: "Visits", icon: "clipboard" });
   if (isOwner(me)) quality.push({ href: "/feedback/release", label: "Release queue", icon: "send" });
   if (!has(me, "cctp_candidate", "candidate") || isEducator(me)) quality.push({ href: "/feedback/new", label: "Log feedback", icon: "pen" });
-  if (isEducator(me) || has(me, "operations")) quality.push({ href: "/reviews", label: "360° reviews", icon: "repeat" });
+  if (isEducator(me) || isOps(me)) quality.push({ href: "/reviews", label: "360° reviews", icon: "repeat" });
   if (isOwner(me) || has(me, "education_principal", "senior_instructor", "hr", "gm", "system_owner", "lead_instructor"))
     quality.push({ href: "/scores", label: "Scores", icon: "chart" });
   if (isOwner(me) || has(me, "education_principal", "senior_instructor", "gm", "instructor"))
@@ -67,11 +73,11 @@ export function navFor(me: Person): { section: string; items: NavItem[] }[] {
   if (quality.length) out.push({ section: "Quality", items: quality });
 
   const appr: NavItem[] = [];
-  if (has(me, "content_creator", "instructor", "senior_instructor", "education_principal", "segment_owner", "operations", "gm", "system_owner"))
+  if ((has(me, "content_creator", "instructor", "senior_instructor", "education_principal", "segment_owner", "gm", "system_owner") || isOps(me)))
     appr.push({ href: "/approvals/content", label: "Content", icon: "book" });
-  if (has(me, "education_principal", "senior_instructor", "segment_owner", "hr", "operations", "gm", "system_owner"))
+  if ((has(me, "education_principal", "senior_instructor", "segment_owner", "hr", "gm", "system_owner") || isOps(me)))
     appr.push({ href: "/approvals/people", label: "People", icon: "user-check" });
-  if (isOwner(me) || has(me, "operations", "education_principal", "senior_instructor", "gm", "system_owner"))
+  if (isOwner(me) || (has(me, "education_principal", "senior_instructor", "gm", "system_owner") || isOps(me)))
     appr.push({ href: "/cohorts", label: "Cohorts", icon: "layers" });
   if (isOwner(me) || has(me, "hr", "gm", "education_principal", "system_owner"))
     appr.push({ href: "/levels", label: "Levels & readiness", icon: "trending" });
@@ -80,12 +86,14 @@ export function navFor(me: Person): { section: string; items: NavItem[] }[] {
   const growth: NavItem[] = [];
   if (isEducator(me)) growth.push({ href: "/report-card", label: "Report card", icon: "doc" });
   if (isEducator(me) || isEducation(me) || isOwner(me) || has(me, "hr", "gm", "system_owner")) growth.push({ href: "/cctp", label: "CCTP", icon: "award" });
-  if (isEducation(me) || has(me, "operations")) growth.push({ href: "/onboarding", label: "QAer onboarding", icon: "target" });
+  if (isEducation(me) || isOps(me) || isEduCoordinator(me)) growth.push({ href: "/onboarding", label: "QAer onboarding", icon: "target" });
   if (has(me, "segment_owner", "education_principal", "senior_instructor", "gm", "system_owner") && !has(me, "hr"))
     growth.push({ href: "/people", label: "People", icon: "users" });
   if (growth.length) out.push({ section: "People & growth", items: dedupe(growth, home) });
 
-  out.push({ section: "Help", items: [{ href: "/handbook", label: "Handbook", icon: "help" }, { href: "/coverage", label: "PRD coverage", icon: "map" }] });
+  const help: NavItem[] = [{ href: "/handbook", label: "Handbook", icon: "help" }];
+  if (has(me, "system_owner")) help.push({ href: "/coverage", label: "PRD coverage", icon: "map" });
+  out.push({ section: "Help", items: help });
   return out;
 }
 
@@ -99,7 +107,8 @@ export function homeFor(me: Person) {
   if (has(me, "system_owner")) return "/admin";
   if (has(me, "gm")) return "/overview";
   if (has(me, "hr")) return "/people";
-  if (has(me, "operations")) return "/ops";
+  if (isOps(me)) return "/ops";
+  if (isEduCoordinator(me)) return "/coordinator";
   if (isEducation(me)) return "/education";
   if (isEducator(me)) return "/me";
   if (has(me, "content_creator")) return "/approvals/content";
@@ -122,6 +131,8 @@ export function roleLabel(me: Person) {
     ta: "Teaching Assistant",
     content_creator: "Content creator",
     cctp_candidate: "CCTP candidate",
+    education_coordinator: "Education coordinator",
+    program_coordinator: "Program coordinator",
   };
   for (const r of Object.keys(map)) if (me.roles.includes(r)) return map[r];
   return "Candidate";

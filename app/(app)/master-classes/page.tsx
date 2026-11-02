@@ -27,7 +27,7 @@ export default async function MasterClasses() {
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="C5 · D7 · special sessions" title="Master classes and challenges"
+      <PageHeader eyebrow="Special sessions" title="Master classes and challenges"
         sub="Master classes go to Tier 1 instructors only. Every session is evaluated with the master-class template, so it feeds the composite like any other QA visit."
         actions={canSchedule ? (
           <Disclosure label="Schedule a session" variant="primary">
@@ -63,7 +63,7 @@ export default async function MasterClasses() {
               <Link key={c.person_id} href={`/people/${c.person_id}`} className="flex items-center gap-3 rounded-xl border border-line p-3 transition hover:border-navy">
                 <Avatar name={c.person.full_name} size={38} tone="navy" />
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-[14px] font-semibold text-navy">{c.person.full_name}</div>
+                  <div className="truncate text-[14.5px] font-semibold text-navy">{c.person.full_name}</div>
                   <div className="mt-0.5 flex items-center gap-1.5"><TierBadge tier={c.tier} provisional={c.provisional} />{c.person.cctp_cert && <Badge tone="green">{c.person.cctp_cert}</Badge>}</div>
                 </div>
                 <span className="text-[20px] font-bold tabular-nums text-tier1">{Number(c.total).toFixed(0)}</span>
@@ -81,17 +81,17 @@ export default async function MasterClasses() {
               <div key={m.id} className="flex flex-col gap-3 rounded-xl border border-line p-4 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-start gap-4">
                   <div className="grid w-14 shrink-0 place-items-center border-2 border-navy py-1.5 text-center">
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-brand">{new Date(m.scheduled_for).toLocaleString("en-GB", { month: "short", timeZone: "Asia/Kuwait" })}</div>
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-brand">{new Date(m.scheduled_for).toLocaleString("en-GB", { month: "short", timeZone: "Asia/Kuwait" })}</div>
                     <div className="text-[20px] font-extrabold leading-none text-navy">{new Date(m.scheduled_for).toLocaleString("en-GB", { day: "numeric", timeZone: "Asia/Kuwait" })}</div>
                   </div>
                   <div>
                     <div className="flex flex-wrap items-center gap-2"><span className="text-[15px] font-semibold text-navy">{m.title}</span><Badge tone={m.kind === "master_class" ? "navy" : "brand"}>{m.kind === "master_class" ? "Master class" : "Challenge"}</Badge></div>
-                    <div className="mt-1 text-[13px] text-ink-500">{m.instructor.full_name} · {m.cohort.name}{m.classroom ? ` · ${m.classroom.name}` : ""} · {fmtDateTime(m.scheduled_for)}</div>
-                    {m.visit && <div className="mt-1 text-[12.5px] text-ink-500"><Icon name="clipboard" className="inline h-3.5 w-3.5" /> Evaluated by {m.visit.assignee?.full_name} · {STATUS_LABEL[m.visit.status] ?? m.visit.status}</div>}
+                    <div className="mt-1 text-[13.5px] text-ink-500">{m.instructor.full_name} · {m.cohort.name}{m.classroom ? ` · ${m.classroom.name}` : ""} · {fmtDateTime(m.scheduled_for)}</div>
+                    {m.visit && <div className="mt-1 text-[13px] text-ink-500"><Icon name="clipboard" className="inline h-3.5 w-3.5" /> Evaluated by {m.visit.assignee?.full_name} · {STATUS_LABEL[m.visit.status] ?? m.visit.status}</div>}
                   </div>
                 </div>
                 {m.visit && (has(me, "segment_owner", "education_principal", "senior_instructor", "education_officer")) && (
-                  <Link href={`/visits/${m.visit.id}`} className="inline-flex items-center gap-1.5 text-[13px] font-medium text-brand hover:underline">Open visit <Icon name="arrow" className="h-3.5 w-3.5" /></Link>
+                  <Link href={`/visits/${m.visit.id}`} className="inline-flex items-center gap-1.5 text-[13.5px] font-medium text-brand hover:underline">Open visit <Icon name="arrow" className="h-3.5 w-3.5" /></Link>
                 )}
               </div>
             ))}

@@ -31,7 +31,7 @@ export default async function ContentList() {
 
   return (
     <div>
-      <PageHeader eyebrow="A · content approval" title="Content"
+      <PageHeader eyebrow="Content approval" title="Content"
         sub="Nothing is used unless it is approved. Content gets one approval before any cohort uses it; staged reviews (outline, lesson plan, Alpha and Beta) come later."
         actions={canCreate ? (
           <Disclosure label="New content request" icon="plus" variant="primary">
@@ -58,7 +58,7 @@ export default async function ContentList() {
       <div className="mb-6 grid gap-3 sm:grid-cols-3">
         <Stat label="Waiting for approval" value={waiting.length} tone={waiting.length ? "amber" : undefined} icon="clock" sub={waiting[0] ? `Oldest ${ago(waiting[0].versions?.find((v: any) => v.decision === "pending")?.submitted_at)}` : "Nothing waiting"} />
         <Stat label="Approved" value={list.filter((i) => i.status === "approved").length} tone="green" icon="check" />
-        <Stat label="Revisions per approved item" value={(list.filter((i) => i.approved_version).reduce((a, i) => a + revisions(i), 0) / Math.max(1, list.filter((i) => i.approved_version).length)).toFixed(1)} icon="refresh" sub="EC Pillar C: fewer revisions" />
+        <Stat label="Revisions per approved item" value={(list.filter((i) => i.approved_version).reduce((a, i) => a + revisions(i), 0) / Math.max(1, list.filter((i) => i.approved_version).length)).toFixed(1)} icon="refresh" sub="Fewer revisions is better" />
       </div>
 
       <Card pad={false} className="px-5 pb-2 pt-4">
@@ -68,11 +68,11 @@ export default async function ContentList() {
             const t = ttm(i);
             return (
               <tr key={i.id} className="hover:bg-canvas/60">
-                <td className={td}><Link href={`/approvals/content/${i.id}`} className="font-medium text-navy hover:text-brand">{i.title}</Link><div className="text-[11.5px] text-ink-500">{i.kind === "update" ? "Update" : "New"} · deadline {fmtDate(i.deadline)}</div></td>
-                <td className={td}>{i.program?.name}<div className="text-[11.5px] text-ink-500">{SEGMENT[i.program?.segment_id]}</div></td>
+                <td className={td}><Link href={`/approvals/content/${i.id}`} className="font-medium text-navy hover:text-brand">{i.title}</Link><div className="text-[12px] text-ink-500">{i.kind === "update" ? "Update" : "New"} · deadline {fmtDate(i.deadline)}</div></td>
+                <td className={td}>{i.program?.name}<div className="text-[12px] text-ink-500">{SEGMENT[i.program?.segment_id]}</div></td>
                 <td className={td}>{i.creator?.full_name}</td>
                 <td className={td}><Badge tone={tone}>{label}</Badge></td>
-                <td className={td}><span className="tabular-nums">{(i.versions ?? []).length}</span>{revisions(i) ? <span className="text-[11.5px] text-ink-500"> · {revisions(i)} revision(s)</span> : null}</td>
+                <td className={td}><span className="tabular-nums">{(i.versions ?? []).length}</span>{revisions(i) ? <span className="text-[12px] text-ink-500"> · {revisions(i)} {revisions(i) === 1 ? "revision" : "revisions"}</span> : null}</td>
                 <td className={td}>{t !== null ? `${t} days` : "—"}</td>
               </tr>
             );

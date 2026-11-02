@@ -38,7 +38,7 @@ export default async function CohortPage({ params }: { params: Promise<{ id: str
   return (
     <div>
       <PageHeader back={{ href: "/cohorts", label: "Cohorts" }} eyebrow={`${c.program.name} · ${SEGMENT[c.program.segment_id]} · ${c.program.program_type}`} title={c.name}
-        sub={`${fmtDate(c.start_date)} – ${fmtDate(c.end_date)} · ${classrooms.length} classroom(s) on the same content`}
+        sub={`${fmtDate(c.start_date)} – ${fmtDate(c.end_date)} · ${classrooms.length} ${classrooms.length === 1 ? "classroom" : "classrooms"} on the same content`}
         actions={<>
           <Badge tone={c.status === "live" ? "green" : c.status === "setup" ? "amber" : "neutral"}>{c.status === "setup" ? "In setup" : c.status}</Badge>
           {owner && c.status !== "closed" && <LinkButton href={`/visits/new?cohort=${id}`} variant="secondary" icon="plus">Schedule a visit</LinkButton>}
@@ -48,9 +48,9 @@ export default async function CohortPage({ params }: { params: Promise<{ id: str
         <Card className={cx("mb-6", r.ok ? "border-[#BFE5D5]" : "border-[#F5DDAF]")}>
           <CardTitle icon={r.ok ? "check" : "lock"} sub="The cohort starts only when content is approved, every classroom is staffed and cleared, and an overseer is named.">Go-live gate</CardTitle>
           <div className="grid gap-2 sm:grid-cols-2">
-            {r.blockers.map((b) => <div key={b} className="flex items-start gap-2 rounded-lg bg-tier4-bg px-3 py-2 text-[13px] text-[#7A1F1A]"><Icon name="x" className="mt-0.5 h-3.5 w-3.5 shrink-0" />{b}</div>)}
-            {r.warnings.map((w) => <div key={w} className="flex items-start gap-2 rounded-lg bg-tier3-bg px-3 py-2 text-[13px] text-[#6B4300]"><Icon name="alert" className="mt-0.5 h-3.5 w-3.5 shrink-0" />{w}</div>)}
-            {r.ok && !r.warnings.length && <div className="flex items-center gap-2 rounded-lg bg-tier1-bg px-3 py-2 text-[13px] text-[#0A5A3E]"><Icon name="check" className="h-3.5 w-3.5" />Everything is in place.</div>}
+            {r.blockers.map((b) => <div key={b} className="flex items-start gap-2 rounded-lg bg-tier4-bg px-3 py-2 text-[13.5px] text-[#7A1F1A]"><Icon name="x" className="mt-0.5 h-3.5 w-3.5 shrink-0" />{b}</div>)}
+            {r.warnings.map((w) => <div key={w} className="flex items-start gap-2 rounded-lg bg-tier3-bg px-3 py-2 text-[13.5px] text-[#6B4300]"><Icon name="alert" className="mt-0.5 h-3.5 w-3.5 shrink-0" />{w}</div>)}
+            {r.ok && !r.warnings.length && <div className="flex items-center gap-2 rounded-lg bg-tier1-bg px-3 py-2 text-[13.5px] text-[#0A5A3E]"><Icon name="check" className="h-3.5 w-3.5" />Everything is in place.</div>}
           </div>
           {owner && <ActionForm action={cohortGoLive} className="mt-4">{hid}<Submit icon="arrow" variant={r.ok ? "primary" : "secondary"}>Start the cohort</Submit></ActionForm>}
         </Card>
@@ -62,12 +62,12 @@ export default async function CohortPage({ params }: { params: Promise<{ id: str
             {classrooms.map((cl: any) => (
               <Card key={cl.id}>
                 <div className="mb-3 flex items-start justify-between">
-                  <div><div className="text-[15px] font-semibold text-navy">{cl.name}</div><div className="text-[12px] text-ink-500">{cl.room ?? "Room not set"}</div></div>
+                  <div><div className="text-[15px] font-semibold text-navy">{cl.name}</div><div className="text-[12.5px] text-ink-500">{cl.room ?? "Room not set"}</div></div>
                   <Badge tone={cl.ready ? "green" : "amber"}>{cl.ready ? "Ready" : "Not confirmed ready"}</Badge>
                 </div>
                 <ul className="space-y-1.5">
                   {cl.classroom_staff.sort((a: any, b: any) => (a.role > b.role ? 1 : -1)).map((s: any) => (
-                    <li key={s.person.id} className="flex items-center justify-between gap-2 text-[13px]">
+                    <li key={s.person.id} className="flex items-center justify-between gap-2 text-[13.5px]">
                       <Link href={`/people/${s.person.id}`} className="flex items-center gap-2 hover:text-brand"><Avatar name={s.person.full_name} size={24} />{s.person.full_name}</Link>
                       <span className="flex items-center gap-1.5">
                         <Badge tone={s.role === "instructor" ? "brand" : "neutral"}>{s.role === "ta" ? "TA" : s.is_lead ? "Lead instructor" : "Instructor"}</Badge>
@@ -79,7 +79,7 @@ export default async function CohortPage({ params }: { params: Promise<{ id: str
                       </span>
                     </li>
                   ))}
-                  {cl.classroom_staff.length === 0 && <li className="text-[13px] text-tier4">No one assigned yet</li>}
+                  {cl.classroom_staff.length === 0 && <li className="text-[13.5px] text-tier4">No one assigned yet</li>}
                 </ul>
                 {canStaff && c.status !== "closed" && (
                   <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-3">
@@ -91,9 +91,9 @@ export default async function CohortPage({ params }: { params: Promise<{ id: str
                         </select>
                         <div className="flex items-center gap-3">
                           <select name="role" className={cx(input, "w-auto")}><option value="instructor">Instructor</option><option value="ta">TA</option></select>
-                          <label className="flex items-center gap-1.5 text-[12.5px]"><input type="checkbox" name="lead" /> Lead</label>
+                          <label className="flex items-center gap-1.5 text-[13px]"><input type="checkbox" name="lead" /> Lead</label>
                         </div>
-                        <p className="text-[11.5px] text-ink-500">Only people cleared to teach with an Active ERPNext contract can be assigned.</p>
+                        <p className="text-[12px] text-ink-500">Only people cleared to teach with an Active ERPNext contract can be assigned.</p>
                         <Submit size="sm">Assign</Submit>
                       </ActionForm>
                     </Disclosure>
@@ -124,7 +124,7 @@ export default async function CohortPage({ params }: { params: Promise<{ id: str
             </CardTitle>
             {(visits ?? []).length === 0 ? <Notice tone="amber">No QA plan yet. A program cannot go live without at least one QA visit.</Notice> : (
               <div className="-mx-5 overflow-x-auto px-5">
-                <table className="w-full min-w-[520px] text-[12.5px]">
+                <table className="w-full min-w-[520px] text-[13px]">
                   <thead><tr className="text-left text-[11px] uppercase tracking-wide text-ink-500"><th className="py-2 pr-3 font-semibold">Week</th>{classrooms.map((cl: any) => <th key={cl.id} className="py-2 pr-3 font-semibold">{cl.name}</th>)}</tr></thead>
                   <tbody>
                     {weeks.map((w) => (
@@ -206,7 +206,7 @@ export default async function CohortPage({ params }: { params: Promise<{ id: str
               </ActionForm>
             </Card>
           )}
-          {c.final_report && <Card><CardTitle icon="doc">Final report</CardTitle><p className="text-[13px]">{c.final_report}</p></Card>}
+          {c.final_report && <Card><CardTitle icon="doc">Final report</CardTitle><p className="text-[13.5px]">{c.final_report}</p></Card>}
         </div>
       </div>
     </div>

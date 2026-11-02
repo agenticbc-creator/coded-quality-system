@@ -52,16 +52,16 @@ export default async function Pipeline({ params }: { params: Promise<{ id: strin
                     </span>
                     <div className="min-w-0 flex-1 pt-0.5">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className={cx("text-[14px] font-semibold", active ? "text-navy" : "text-ink")}>{STEP[s.step].label}</span>
-                        <span className="text-[12px] text-ink-500">{STEP[s.step].owner}</span>
+                        <span className={cx("text-[14.5px] font-semibold", active ? "text-navy" : "text-ink")}>{STEP[s.step].label}</span>
+                        <span className="text-[12.5px] text-ink-500">{STEP[s.step].owner}</span>
                         {active && <Badge tone="amber">Waiting since {fmtDate(s.opened_at)}</Badge>}
                       </div>
-                      {s.done_at && <div className="text-[12px] text-ink-500">{s.status === "failed" ? "Not passed" : "Done"} by {s.by?.full_name} · {fmtDateTime(s.done_at)}</div>}
-                      {s.notes && <p className="mt-1 text-[13px] text-ink-600">{s.notes}</p>}
-                      {s.data?.total !== undefined && s.step === "vetting" && <p className="mt-1 text-[12.5px]">Scorecard <b className="tabular-nums">{s.data.total}</b>/100 · {s.data.recommend ? "recommended" : "not recommended"}</p>}
-                      {s.data?.rate && <p className="mt-1 text-[12.5px]">Rate <b className="tabular-nums">{s.data.rate} KWD</b> / {s.data.rate_type === "hourly" ? "hour" : s.data.rate_type}</p>}
-                      {s.data?.erp_contract && <p className="mt-1 text-[12.5px]">ERPNext {s.data.erp_contract} · {s.data.erp_status} · signed {fmtDate(s.data.signed_at)}</p>}
-                      {s.data?.result && <p className="mt-1 text-[12.5px]">Mock class <b className="tabular-nums">{s.data.total}</b>/100 · {s.data.result === "not_yet" ? "Not Yet" : s.data.result}</p>}
+                      {s.done_at && <div className="text-[12.5px] text-ink-500">{s.status === "failed" ? "Not passed" : "Done"} by {s.by?.full_name} · {fmtDateTime(s.done_at)}</div>}
+                      {s.notes && <p className="mt-1 text-[13.5px] text-ink-600">{s.notes}</p>}
+                      {s.data?.total !== undefined && s.step === "vetting" && <p className="mt-1 text-[13px]">Scorecard <b className="tabular-nums">{s.data.total}</b>/100 · {s.data.recommend ? "recommended" : "not recommended"}</p>}
+                      {s.data?.rate && <p className="mt-1 text-[13px]">Rate <b className="tabular-nums">{s.data.rate} KWD</b> / {s.data.rate_type === "hourly" ? "hour" : s.data.rate_type}</p>}
+                      {s.data?.erp_contract && <p className="mt-1 text-[13px]">ERPNext {s.data.erp_contract} · {s.data.erp_status} · signed {fmtDate(s.data.signed_at)}</p>}
+                      {s.data?.result && <p className="mt-1 text-[13px]">Mock class <b className="tabular-nums">{s.data.total}</b>/100 · {s.data.result === "not_yet" ? "Not Yet" : s.data.result}</p>}
                     </div>
                   </li>
                 );
@@ -89,10 +89,10 @@ export default async function Pipeline({ params }: { params: Promise<{ id: strin
               <CardTitle icon="star" sub="CCTP 100-point rubric · written feedback within 24 hours">Mock classes</CardTitle>
               {(mocks ?? []).map((m: any) => (
                 <div key={m.id} className="mb-3 rounded-lg border border-line p-3 last:mb-0">
-                  <div className="flex items-center justify-between"><b className="text-[13px] text-navy">{m.context === "mock1" ? "Mock class 1" : "Mock class 2"}</b><span className="tabular-nums text-[15px] font-semibold">{m.total}</span></div>
+                  <div className="flex items-center justify-between"><b className="text-[13.5px] text-navy">{m.context === "mock1" ? "Mock class 1" : "Mock class 2"}</b><span className="tabular-nums text-[15px] font-semibold">{m.total}</span></div>
                   <Badge tone={m.result === "not_yet" ? "red" : "green"}>{m.result === "not_yet" ? "Not Yet" : m.result}</Badge>
-                  <p className="mt-2 text-[12.5px] text-ink-600">{m.feedback}</p>
-                  <div className="mt-1 text-[11.5px] text-ink-500">{m.assessor?.full_name} · {fmtDateTime(m.created_at)}</div>
+                  <p className="mt-2 text-[13px] text-ink-600">{m.feedback}</p>
+                  <div className="mt-1 text-[12px] text-ink-500">{m.assessor?.full_name} · {fmtDateTime(m.created_at)}</div>
                 </div>
               ))}
             </Card>
@@ -118,9 +118,9 @@ function StepForm({ step, pipeline, S, contract }: { step: any; pipeline: any; S
             ))}
           </div>
           <div>
-            <div className="mb-1.5 text-[12.5px] font-medium text-tier4">Critical failures</div>
+            <div className="mb-1.5 text-[13px] font-medium text-tier4">Critical failures</div>
             <div className="grid gap-2 sm:grid-cols-2">
-              {r.critical.map((c: any) => <label key={c.key} className="flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-[13px]"><input type="checkbox" name={`crit_${c.key}`} /> {c.label}</label>)}
+              {r.critical.map((c: any) => <label key={c.key} className="flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-[13.5px]"><input type="checkbox" name={`crit_${c.key}`} /> {c.label}</label>)}
             </div>
           </div>
           <Field label="Written feedback (what to fix)"><textarea name="feedback" rows={3} required className={input} /></Field>
@@ -136,7 +136,7 @@ function StepForm({ step, pipeline, S, contract }: { step: any; pipeline: any; S
         {hidden}
         {step.step === "vetting" && (
           <>
-            <div className="flex items-center gap-2"><span className="text-[12.5px] text-ink-500">Live technical vetting with a written scorecard</span>{S.vetting_scorecard?.status === "draft_review" && <Badge tone="draft">Draft scorecard</Badge>}</div>
+            <div className="flex items-center gap-2"><span className="text-[13px] text-ink-500">Live technical vetting with a written scorecard</span>{S.vetting_scorecard?.status === "draft_review" && <Badge tone="draft">Draft scorecard</Badge>}</div>
             <div className="grid gap-3 sm:grid-cols-2">
               {S.vetting_scorecard?.value.items.map((it: any) => <Field key={it.key} label={`${it.label} (0–${it.max})`}><input type="number" name={`score_${it.key}`} min={0} max={it.max} required className={input} /></Field>)}
             </div>
@@ -156,8 +156,8 @@ function StepForm({ step, pipeline, S, contract }: { step: any; pipeline: any; S
         )}
         {step.step === "onboarding" && pipeline.target_role === "ta" && (
           <div>
-            <div className="mb-1.5 text-[12.5px] font-medium text-ink-600">TA checklist</div>
-            <div className="space-y-1.5">{S.ta_checklist?.value.items.map((it: any) => <label key={it.key} className="flex items-center gap-2 text-[13px]"><input type="checkbox" name={`check_${it.key}`} required /> {it.label}</label>)}</div>
+            <div className="mb-1.5 text-[13px] font-medium text-ink-600">TA checklist</div>
+            <div className="space-y-1.5">{S.ta_checklist?.value.items.map((it: any) => <label key={it.key} className="flex items-center gap-2 text-[13.5px]"><input type="checkbox" name={`check_${it.key}`} required /> {it.label}</label>)}</div>
           </div>
         )}
         <Field label="Notes"><textarea name="notes" rows={2} className={input} /></Field>

@@ -18,7 +18,7 @@ function Age({ since }: { since: string | null }) {
   if (!since) return <span className="text-ink-400">—</span>;
   const h = hoursSince(since) ?? 0;
   const label = h < 24 ? `${Math.max(1, Math.round(h))}h` : `${Math.round(h / 24)}d`;
-  return <span className={cx("inline-flex min-w-[42px] justify-center rounded-md px-1.5 py-0.5 text-[12px] font-semibold tabular-nums", h < 24 ? "bg-tier1-bg text-tier1" : h < 72 ? "bg-tier3-bg text-tier3" : "bg-tier4-bg text-tier4")}>{label}</span>;
+  return <span className={cx("inline-flex min-w-[42px] justify-center rounded-md px-1.5 py-0.5 text-[12.5px] font-semibold tabular-nums", h < 24 ? "bg-tier1-bg text-tier1" : h < 72 ? "bg-tier3-bg text-tier3" : "bg-tier4-bg text-tier4")}>{label}</span>;
 }
 
 export default async function Approvals() {
@@ -81,16 +81,16 @@ export default async function Approvals() {
   const Row = ({ i }: { i: Item }) => (
     <Link href={i.href} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 transition hover:bg-zebra md:grid-cols-[auto_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,0.8fr)_auto]">
       <span className="grid h-8 w-8 place-items-center rounded-md bg-canvas text-navy"><Icon name={i.icon} className="h-4 w-4" /></span>
-      <span className="min-w-0"><span className="block truncate text-[13.5px] font-semibold text-navy">{i.title}</span><span className="block truncate text-[12px] text-ink-500">{i.area} · {i.sub}</span></span>
-      <span className="hidden truncate text-[13px] capitalize text-ink-600 md:block">{i.stage}</span>
-      <span className="hidden truncate text-[12.5px] text-ink-500 md:block">{i.owner}</span>
+      <span className="min-w-0"><span className="block truncate text-[14px] font-semibold text-navy">{i.title}</span><span className="block truncate text-[12.5px] text-ink-500">{i.area} · {i.sub}</span></span>
+      <span className="hidden truncate text-[13.5px] capitalize text-ink-600 md:block">{i.stage}</span>
+      <span className="hidden truncate text-[13px] text-ink-500 md:block">{i.owner}</span>
       <Age since={i.since} />
     </Link>
   );
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="R2 · approvals dashboard" title="Waiting on me"
+      <PageHeader eyebrow="Approvals dashboard" title="Waiting on me"
         sub="Everything that needs a decision, by stage, age and approver. Anything older than three working days also sends a reminder to the approver." />
       <div className="grid gap-3 sm:grid-cols-4">
         <Stat label="Waiting on you" value={mine.length} icon="inbox" tone={mine.length ? "amber" : "green"} />
@@ -99,7 +99,7 @@ export default async function Approvals() {
         <Stat label="Areas" value={areas.length} sub={areas.join(" · ") || "—"} icon="grid" />
       </div>
       <Card pad={false}>
-        <div className="flex items-center justify-between border-b border-line px-4 py-3"><h2 className="text-[15px] font-semibold text-navy">Your queue</h2><span className="text-[12px] text-ink-500">oldest first</span></div>
+        <div className="flex items-center justify-between border-b border-line px-4 py-3"><h2 className="text-[15px] font-semibold text-navy">Your queue</h2><span className="text-[12.5px] text-ink-500">oldest first</span></div>
         {mine.length === 0 ? <div className="p-5"><Empty icon="check" title="Nothing is waiting on you" sub="New requests appear here and in your notifications." /></div> : <div className="divide-y divide-line">{mine.map((i) => <Row key={i.key} i={i} />)}</div>}
       </Card>
       {others.length > 0 && (
