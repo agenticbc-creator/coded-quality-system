@@ -28,3 +28,15 @@ export async function sendEmail(to: string, subject: string, text: string): Prom
   });
   return res.ok;
 }
+
+/** Sends up to 100 emails in one Resend batch call. Returns false (and sends nothing) when email is not configured. */
+export async function sendEmailBatch(items: { to: string; subject: string; text: string }[]): Promise<boolean> {
+  const key = process.env.RESEND_API_KEY, from = process.env.EMAIL_FROM;
+  if (!key || !from || !items.length) return false;
+  const res = await fetch("https://api.resend.com/emails/batch", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify(items.slice(0, 100).map((i) => ({ from, ...i }))),
+  });
+  return res.ok;
+}

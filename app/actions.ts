@@ -394,7 +394,7 @@ export async function personAdd(_: ActionResult, f: FormData): Promise<ActionRes
   if (f.get("invite") !== "on") return { ok: true, message: "Record added. They can sign in once they have an account with this email." };
   if (!hasServiceKey()) return { ok: true, message: "Record added. The invite email is off until SUPABASE_SERVICE_ROLE_KEY is set in Vercel; send the invite from Supabase (Authentication > Users > Invite) for now." };
   const base = (process.env.APP_URL || "https://coded-quality-system.vercel.app").replace(/\/$/, "");
-  const { error: inv } = await adminDb().auth.admin.inviteUserByEmail(email, { redirectTo: `${base}/login` });
+  const { error: inv } = await adminDb().auth.admin.inviteUserByEmail(email, { redirectTo: `${base}/login/set-password` });
   return inv ? { ok: true, message: `Record added, but the invite failed: ${inv.message}` } : { ok: true, message: "Record added and the invite email is on its way." };
 }
 

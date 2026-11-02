@@ -56,8 +56,9 @@ export function VisitInstrument({ visitId, kind, rubric, subjects, redFlagReason
     return () => { window.removeEventListener("online", on); window.removeEventListener("offline", on); };
   }, [storeKey, queueKey]);
   useEffect(() => {
-    if (online && queued) { const t = setTimeout(() => submitRef.current?.click(), 800); return () => clearTimeout(t); }
-  }, [online, queued]);
+    // One automatic attempt: if the server refuses it, the error shows and the observer submits again by hand.
+    if (online && queued) { const t = setTimeout(() => { submitRef.current?.click(); try { localStorage.removeItem(queueKey); } catch {} setQueued(false); }, 800); return () => clearTimeout(t); }
+  }, [online, queued, queueKey]);
   useEffect(() => {
     const t = setTimeout(() => {
       try {
@@ -113,7 +114,8 @@ export function VisitInstrument({ visitId, kind, rubric, subjects, redFlagReason
 
   return (
     <ActionForm action={visitSubmit} onDone={() => { try { localStorage.removeItem(storeKey); localStorage.removeItem(queueKey); } catch {} setQueued(false); }} className="space-y-5">
-      <button ref={submitRef} type="submit" hidden aria-hidden tabIndex={-1} />
+      {/* Used only to send a queued report; disabled otherwise so Enter in a field never submits the report. */}
+      <button ref={submitRef} type="submit" hidden aria-hidden tabIndex={-1} disabled={!(online && queued)} />
       <input type="hidden" name="visit" value={visitId} />
       <input type="hidden" name="attendance" value={attendance} />
       <input type="hidden" name="unobserved" value={JSON.stringify(unobserved)} />

@@ -100,6 +100,17 @@ where t.key = 'edu_class_kids' and t.version = (select max(version) from qa_temp
   and not exists (select 1 from qa_templates x where x.key = v.k);
 
 -- ══ 4. Cohort sign-offs: staffing and the QA plan ═══════════
+-- The age-bracket drafts are chosen by hand on the booking form; the automatic pick keeps using edu_class_kids.
+create or replace function _template_for(p_kind text, p_qa_type text, p_seg text default null) returns uuid
+language sql stable security definer set search_path = public as $$
+  select id from qa_templates
+  where status <> 'retired' and not is_special
+    and kind = case when p_kind = 'shadowing' then 'shadowing' when p_qa_type = 'operations' then 'operations_qa' else 'education_qa' end
+    and (segment_id is null or segment_id = p_seg)
+    and key !~ '^edu_class_kids_[0-9]'
+  order by (segment_id is not distinct from p_seg and p_seg is not null) desc, (focus = 'class') desc, version desc, key limit 1
+$$;
+
 create or replace function cohort_approve(p_cohort uuid, p_what text) returns void
 language plpgsql security definer set search_path = public as $$
 declare co cohorts;
@@ -141,6 +152,17 @@ begin
 end $$;
 drop trigger if exists qa_plan_changed on cohorts;
 create trigger qa_plan_changed before update on cohorts for each row execute function _qa_plan_changed();
+
+create or replace function _qa_visits_changed() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.kind = 'qa' and new.focus <> 'alignment' and (tg_op = 'INSERT' or (new.status = 'cancelled' and old.status <> 'cancelled')) then
+    update cohorts set qa_plan_approved_at = null, qa_plan_approved_by = null where id = new.cohort_id and status = 'setup';
+  end if;
+  return null;
+end $$;
+drop trigger if exists qa_visits_changed on visits;
+create trigger qa_visits_changed after insert or update of status on visits for each row execute function _qa_visits_changed();
 
 -- Readiness now also needs both sign-offs; an alignment visit before Day 1 is a warning.
 create or replace function cohort_readiness(p_cohort uuid) returns jsonb
@@ -192,6 +214,8 @@ declare p uuid; n int := 0; v_seg text := cohort_segment(p_cohort);
 begin
   perform _require(owns_cohort(p_cohort) or has_role('education_principal'), 'Only the segment owner or the Education Principal scores a cohort');
   perform _require(p_period ~ '^[0-9]{4}-Q[1-4]$', 'Pick a quarter, for example 2026-Q4');
+  perform _require(exists (select 1 from cohorts co, period_bounds(p_period) b where co.id = p_cohort and co.start_date <= b.d_to and co.end_date >= b.d_from),
+                   'This cohort did not run in that quarter');
   for p in select distinct cs.person_id from classroom_staff cs join classrooms cl on cl.id = cs.classroom_id where cl.cohort_id = p_cohort loop
     perform _compute_one(p, p_period, v_seg);
     n := n + 1;
@@ -256,6 +280,7 @@ create or replace function _next_assignee(p_visit uuid) returns uuid
 language sql stable security definer set search_path = public as $$
   select p.id from visits v, people p
   where v.id = p_visit and p.id <> coalesce(v.assignee_id, '00000000-0000-0000-0000-000000000000')
+    and not exists (select 1 from audit_log l where l.action = 'visit.decline' and l.entity_id = p_visit::text and l.actor_id = p.id)
     and case
       when v.kind = 'shadowing' then p.id in (select person_id from cohort_roles where cohort_id = v.cohort_id) or 'education_officer' = any(p.roles)
       when v.qa_type = 'operations' then 'operations' = any(p.roles)
@@ -282,6 +307,12 @@ begin
     perform _require(p_when is not null, 'Pick the new date and time');
     perform _require(not exists (select 1 from erp_availability where person_id = v.assignee_id and p_when::date between from_date and to_date),
                      'Unavailable on that date (ERPNext availability)');
+    perform _require(not (v.kind = 'qa' and v.qa_type = 'education' and v.focus <> 'alignment' and v.classroom_id is not null)
+                     or not exists (select 1 from app_sessions where classroom_id = v.classroom_id
+                                    and (starts_at at time zone 'Asia/Kuwait')::date >= (p_when at time zone 'Asia/Kuwait')::date)
+                     or exists (select 1 from app_sessions s where s.classroom_id = v.classroom_id
+                                and (s.starts_at at time zone 'Asia/Kuwait')::date = (p_when at time zone 'Asia/Kuwait')::date),
+                     'This classroom has no class that day in the CODED App timetable. Pick a teaching day.');
     update visits set scheduled_for = p_when, status = 'accepted' where id = p_visit;
   elsif p_action = 'decline' then
     -- Goes back to the scheduler's queue so it is replaced, not forgotten.
@@ -372,7 +403,7 @@ begin
   perform _require(p_when is not null, 'Pick a date and time');
   perform _require(not exists (select 1 from erp_availability where person_id = p_assignee and p_when::date between from_date and to_date),
                    'That person is unavailable on this date (ERPNext availability)');
-  perform _require(p_kind <> 'qa' or p_classroom is null or coalesce(p_focus, 'class') = 'alignment'
+  perform _require(p_kind <> 'qa' or p_qa_type <> 'education' or p_classroom is null or coalesce(p_focus, 'class') = 'alignment'
                    or not exists (select 1 from app_sessions where classroom_id = p_classroom  -- timetable does not reach that date yet
                               and (starts_at at time zone 'Asia/Kuwait')::date >= (p_when at time zone 'Asia/Kuwait')::date)
                    or exists (select 1 from app_sessions s where s.classroom_id = p_classroom
@@ -439,9 +470,9 @@ begin
   perform _require(f.id is not null and f.author_id = me(), 'You can only change notes you wrote');
   perform _require(f.status = 'private' and f.reviewed_at is null, 'This note has been reviewed; ask the segment owner to change it');
   perform _require(length(trim(coalesce(p_body,''))) > 0, 'Write what you saw');
-  perform _require(coalesce(p_severity, f.severity) <> 'red_flag' or coalesce(p_red_flag_reason, f.red_flag_reason) is not null, 'Pick the red-flag reason');
+  perform _require(coalesce(p_severity, f.severity) <> 'red_flag' or f.severity = 'red_flag', 'Log a new note for a red flag, so the segment owner is alerted the same day');
   update feedback set type = coalesce(p_type, type), severity = coalesce(p_severity, severity), body = p_body,
-    red_flag_reason = coalesce(p_red_flag_reason, red_flag_reason) where id = p_id;
+    red_flag_reason = coalesce(p_red_flag_reason, red_flag_reason), updated_at = now() where id = p_id;
   perform _log('feedback.author_edit', 'feedback', p_id::text, jsonb_build_object('length_before', length(f.body)));
 end $$;
 
@@ -465,7 +496,7 @@ begin
   if a[1] = 'visit' then
     return exists (select 1 from visits v where v.id::text = a[2] and (v.assignee_id = me() or owns_cohort(v.cohort_id) or has_role('education_principal')));
   elsif a[1] = 'feedback' then
-    return a[2] = me()::text or exists (select 1 from feedback f where f.attachment_url = 'evidence:' || p_name
+    return a[2] = me()::text or exists (select 1 from feedback f where f.attachment_url = 'evidence:' || p_name and f.author_id::text = a[2]
                                            and (owns_person(f.subject_id) or has_role('education_principal')));
   end if;
   return false;
@@ -540,6 +571,12 @@ begin
     perform _require(coalesce(r->>'erp_supplier_id','') <> '' and coalesce(r->>'full_name','') <> '', 'Every row needs erp_supplier_id and full_name');
     perform _require(coalesce(r->>'contractor_status','Active') in ('Potential','Active','Inactive','Blacklisted','Duplicate'), 'Unknown contractor status in ' || (r->>'erp_supplier_id'));
     select id into v_id from people where erp_supplier_id = r->>'erp_supplier_id';
+    if v_id is null and coalesce(r->>'email','') <> '' then
+      select id into v_id from people where lower(email) = lower(r->>'email');
+      perform _require(v_id is null or (select erp_supplier_id is null from people where id = v_id),
+                       'The email on ' || (r->>'erp_supplier_id') || ' already belongs to a record with another supplier ID');
+      update people set erp_supplier_id = r->>'erp_supplier_id' where id = v_id;
+    end if;
     if v_id is null then
       insert into people (full_name, arabic_name, email, roles, home_segment, erp_supplier_id, erp_service_category, erp_instructor_level, erp_contractor_status)
       values (r->>'full_name', r->>'arabic_name', nullif(lower(r->>'email'),''), array['instructor'], nullif(r->>'home_segment',''),
@@ -585,4 +622,4 @@ revoke execute on function _log(text,text,text,jsonb), _notify(uuid,text,text,te
   _can_qa(uuid, text, text), _can_staff(uuid), _people_with_role(text), _pipeline_step_allowed(text, text),
   _rotate_assignee(uuid, text, text), _score_mock(jsonb, text[]), _segment_owners(text), _setting(text),
   _team_role(uuid, uuid, uuid), _template_for(text, text, text), _require(boolean, text), _score_subject(jsonb, text, jsonb, text[]),
-  _level_suggestions(), _unscored_items(jsonb, text, jsonb, text[]), _next_assignee(uuid), _staffing_changed(), _qa_plan_changed() from authenticated;
+  _level_suggestions(), _unscored_items(jsonb, text, jsonb, text[]), _next_assignee(uuid), _staffing_changed(), _qa_plan_changed(), _qa_visits_changed() from authenticated;

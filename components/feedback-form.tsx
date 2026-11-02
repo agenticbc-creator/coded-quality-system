@@ -30,7 +30,7 @@ export function FeedbackForm({ options, reasons, meId, canAttach = false }: { op
   const [severity, setSeverity] = useState("positive");
   const o = options[sel];
   return (
-    <ActionForm action={feedbackLog} resetOnSuccess className="space-y-5">
+    <ActionForm action={feedbackLog} resetOnSuccess onDone={() => { setAttachment(null); setSel(0); setUpErr(null); }} className="space-y-5">
       <input type="hidden" name="subject" value={o?.person ?? ""} />
       <input type="hidden" name="cohort" value={o?.cohort ?? ""} />
       <input type="hidden" name="classroom" value={o?.classroom ?? ""} />

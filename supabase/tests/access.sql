@@ -177,4 +177,32 @@ select pg_temp.act_as('tariq');
 select pg_temp.ok((import_contractors('[{"erp_supplier_id":"SUP-T1","full_name":"Test Contractor"},{"erp_supplier_id":"SUP-0102","full_name":"Huda Al-Mutairi"}]')->>'new')::int = 1, 'import: one new, one updated');
 rollback;
 
+\echo '-- Review fixes'
+begin;
+select pg_temp.ok((select key from qa_templates where id = _template_for('qa', 'education', 'kids')) = 'edu_class_kids', 'templates: the age-bracket drafts are never picked automatically');
+select pg_temp.act_as('sara');
+select visit_respond((select invited_b from t_ids), 'decline', null, null);
+reset role;
+-- the second observer declines too: it must not go back to Sara
+select set_config('t.first', (select assignee_id::text from visits where id = (select invited_b from t_ids)), true) \g /dev/null
+select set_config('request.jwt.claim.sub', (select auth_user_id::text from people where id::text = current_setting('t.first')), true) \g /dev/null
+set local role authenticated;
+select visit_respond((select invited_b from t_ids), 'decline', null, null) where current_setting('t.first', true) <> '';
+reset role;
+select pg_temp.ok((select assignee_id is distinct from (select sara from t_ids) from visits where id = (select invited_b from t_ids)), 'decline: never passed back to someone who already declined');
+rollback;
+begin;
+select pg_temp.act_as('noura');
+select pg_temp.refused($$select cohort_score((select fs from t_ids), '2025-Q1')$$, 'batch score: refused for a quarter the cohort did not run in', 'did not run');
+select pg_temp.ok((cohort_score((select fs from t_ids), '2026-Q4')->>'people')::int > 0, 'batch score: scores the team for its quarter');
+rollback;
+begin;
+select pg_temp.act_as('tariq');
+select pg_temp.ok((import_contractors('[{"erp_supplier_id":"SUP-T9","full_name":"Noura Al-Saleh","email":"NOURA@demo.coded.test"}]')->>'updated')::int = 1, 'import: an existing email is matched, not duplicated');
+rollback;
+begin;
+select pg_temp.act_as('khalid');
+select pg_temp.refused($$select feedback_update_own((select khalid_note from t_ids), 'concern', 'red_flag', 'x', 'Safety')$$, 'note edit: cannot turn a note into a red flag quietly', 'new note');
+rollback;
+
 \echo 'all access tests passed'

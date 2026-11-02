@@ -85,6 +85,7 @@ export const FOCUS: Record<string, string> = {
   tas: "The TAs",
   classroom_management: "Classroom management",
   content: "The content",
+  alignment: "Alignment before Day 1",
 };
 
 export function visitLabel(v: { kind: string; qa_type?: string | null; mode?: string | null }) {

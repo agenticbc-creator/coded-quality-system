@@ -92,7 +92,8 @@ Muna (Education Coordinator) and Omar (Program Coordinator) to the sign-in page.
 
 Server-only settings in Vercel (each feature stays off until its key is set): `SUPABASE_SERVICE_ROLE_KEY`
 (invite emails, daily email run), `CRON_SECRET` (protects `/api/cron/daily`, scheduled in `vercel.json` for
-07:00 Kuwait), `RESEND_API_KEY` and `EMAIL_FROM` (notification email), `APP_URL`.
+07:00 Kuwait), `RESEND_API_KEY` and `EMAIL_FROM` (notification email), `APP_URL`. Invite emails land on `/login/set-password`;
+add `https://coded-quality-system.vercel.app/login/set-password` under Supabase Auth → URL Configuration → Redirect URLs.
 
 Tests: `npm run test:db` builds a throwaway local Postgres database the way the hosted one was built
 (0001–0008, demo seeds, 0009, 0010) and runs `supabase/tests/access.sql` (44 checks on who sees and does what).

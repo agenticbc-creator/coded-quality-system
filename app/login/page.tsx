@@ -3,6 +3,7 @@ import { signIn } from "@/app/actions";
 import { input, label } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { Logo } from "@/components/brand";
+import { InviteRedirect } from "./invite-redirect";
 
 export const metadata = { title: "Sign in" };
 
@@ -39,6 +40,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
   const demo = Boolean(process.env.DEMO_PASSWORD);
   return (
     <main className="grid min-h-screen lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
+      <InviteRedirect />
       <section className="blueprint relative flex flex-col justify-between overflow-hidden px-8 py-10 text-white lg:sticky lg:top-0 lg:h-screen lg:px-14 lg:py-14">
         <div className="flex items-center gap-4">
           <Logo className="w-[120px]" />
