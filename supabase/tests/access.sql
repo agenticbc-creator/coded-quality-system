@@ -205,4 +205,18 @@ select pg_temp.act_as('khalid');
 select pg_temp.refused($$select feedback_update_own((select khalid_note from t_ids), 'concern', 'red_flag', 'x', 'Safety')$$, 'note edit: cannot turn a note into a red flag quietly', 'new note');
 rollback;
 
+begin;
+-- A new observer with no visits and no onboarding cannot accept a first visit
+insert into auth.users (id, email, email_confirmed_at) values ('33333333-3333-3333-3333-333333333333', 'new.eo@example.com', now());
+insert into people (auth_user_id, full_name, email, roles, home_segment, is_full_timer) values ('33333333-3333-3333-3333-333333333333', 'New Officer', 'new.eo@example.com', '{education_officer}', 'pro', true);
+select pg_temp.act_as('noura');
+select set_config('t.v', visit_schedule(null, (select fs from t_ids), (select room_a from t_ids), 'shadowing', null, 'planned', 'class', null, null,
+  (select id from people where email = 'new.eo@example.com'), (select teach_at from t_ids))::text, true) \g /dev/null
+select pg_temp.act_as('33333333-3333-3333-3333-333333333333');
+select pg_temp.refused($$select visit_respond(current_setting('t.v')::uuid, 'accept')$$, 'onboarding: a first visit waits for QAer onboarding', 'onboarding');
+select qaer_onboarding_complete('shadowing_checklist');
+select visit_respond(current_setting('t.v')::uuid, 'accept');
+select pg_temp.ok((select status from visits where id = current_setting('t.v')::uuid) = 'accepted', 'onboarding: accepted once onboarded on that template');
+rollback;
+
 \echo 'all access tests passed'

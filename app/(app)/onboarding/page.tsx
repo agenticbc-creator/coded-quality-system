@@ -31,7 +31,7 @@ export default async function Onboarding() {
   return (
     <div className="space-y-6">
       <PageHeader eyebrow="Before a first visit" title="QAer onboarding"
-        sub="Walk through each template you will use, then mark it complete. The QA plan and scheduling show who is onboarded so first visits go to people who know the rubric." />
+        sub="Walk through each template you will use, then mark it complete. From migration 0010 you cannot accept your first visit of a kind until you have finished onboarding on its template." />
 
       <section className="blueprint rounded-2xl p-6 text-white md:p-8">
         <div className="flex flex-wrap items-end justify-between gap-6">

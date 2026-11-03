@@ -45,7 +45,7 @@ export default async function MasterClasses() {
                 </Field>
                 <Field label="Instructor" hint="Only Tier 1 instructors can lead a master class.">
                   <select name="instructor" required className={input}>
-                    {instructors.map((c) => <option key={c.person_id} value={c.person_id}>{c.person.full_name} · Tier {c.tier ?? "—"}{c.tier === 1 ? " ✓" : ""}</option>)}
+                    {instructors.map((c) => <option key={c.person_id} value={c.person_id}>{c.person.full_name} · Tier {c.tier ?? "—"}{c.tier === 1 ? " ✓" : ""}{c.person.cctp_cert ? ` · ${c.person.cctp_cert}` : ""}</option>)}
                   </select>
                 </Field>
                 <Field label="Evaluator"><select name="assignee" required className={input}>{((evaluators ?? []) as any[]).filter((e) => e.is_full_timer).map((e) => <option key={e.id} value={e.id}>{e.full_name}</option>)}</select></Field>

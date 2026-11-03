@@ -289,7 +289,10 @@ language sql stable security definer set search_path = public as $$
     and (v.kind = 'shadowing' or _can_qa(p.id, v.qa_type, cohort_segment(v.cohort_id)))
     and p.id not in (select person_id from classroom_staff where classroom_id = v.classroom_id)
     and not exists (select 1 from erp_availability a where a.person_id = p.id and (v.scheduled_for at time zone 'Asia/Kuwait')::date between a.from_date and a.to_date)
-  order by (select count(*) from visits x where x.cohort_id = v.cohort_id and x.assignee_id = p.id), p.full_name
+  order by (exists (select 1 from visits x where x.assignee_id = p.id and x.submitted_at is not null and x.kind = v.kind and x.qa_type is not distinct from v.qa_type)
+             or exists (select 1 from qaer_onboarding o join qa_templates t on t.key = o.template_key
+                        where o.person_id = p.id and t.kind = (select kind from qa_templates where id = v.template_id))) desc,  -- people who can accept it first
+           (select count(*) from visits x where x.cohort_id = v.cohort_id and x.assignee_id = p.id), p.full_name
   limit 1
 $$;
 create or replace function visit_respond(p_visit uuid, p_action text, p_when timestamptz default null, p_reason text default null) returns void
@@ -301,6 +304,13 @@ begin
   perform _require(v.submitted_at is null, 'This visit is already completed');
   v_is_owner := owns_cohort(v.cohort_id);
   perform _require(v.assignee_id = me() or v_is_owner, 'Only the assigned observer or the segment owner can change this visit');
+  if p_action in ('accept','reschedule') then
+    perform _require(exists (select 1 from visits x where x.assignee_id = v.assignee_id and x.submitted_at is not null
+                               and x.kind = v.kind and x.qa_type is not distinct from v.qa_type)
+                     or exists (select 1 from qaer_onboarding o join qa_templates t on t.key = o.template_key
+                                where o.person_id = v.assignee_id and t.kind = (select kind from qa_templates where id = v.template_id)),
+                     'First visit of this kind: finish QAer onboarding for its template first (QAer onboarding page)');
+  end if;
   if p_action = 'accept' then
     update visits set status = 'accepted' where id = p_visit;
   elsif p_action = 'reschedule' then

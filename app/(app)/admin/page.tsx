@@ -6,6 +6,7 @@ import { ActionForm, Submit } from "@/components/forms";
 import { Icon } from "@/components/icons";
 import { importContractors, importSessions, personAdd, personRoles, qaTemplateSave, runDailyJobs, schemaVersion, scoringTemplateSave, settingsSet } from "@/app/actions";
 import { hasServiceKey } from "@/lib/supabase-admin";
+import { RubricEditor } from "@/components/rubric-editor";
 import { SEGMENT, ago, fmtDateTime } from "@/lib/format";
 
 export const metadata = { title: "System" };
@@ -173,7 +174,7 @@ async function Templates({ supabase }: { supabase: any }) {
                   <Field label="Name"><input name="name" defaultValue={t.name} className={input} /></Field>
                   <Field label="Subjects scored (comma separated)"><input name="subjects" defaultValue={t.subjects.join(", ")} className={input} /></Field>
                 </div>
-                <Field label="Rubric (JSON)"><textarea name="rubric" rows={10} defaultValue={JSON.stringify(t.rubric, null, 2)} className={`${input} tabular-nums text-[12.5px]`} /></Field>
+                <div><span className="mb-1.5 block text-[13px] font-semibold text-ink-600">{t.kind === "shadowing" ? "Checklist" : "Rubric"}</span><RubricEditor initial={t.rubric} kind={t.kind} /></div>
                 <label className="flex items-center gap-2 text-[13px]"><input type="checkbox" name="special" defaultChecked={t.is_special} /> Master class or challenge template</label>
                 <Submit size="sm">Save version {t.version + 1}</Submit>
               </ActionForm>

@@ -276,6 +276,9 @@ export async function notificationsRead(_: ActionResult, _f: FormData) {
 export async function qaTemplateSave(_: ActionResult, f: FormData) {
   let rubric: unknown;
   try { rubric = JSON.parse(s(f, "rubric") ?? "null"); } catch { return { ok: false, error: "The rubric is not valid JSON." }; }
+  const r = rubric as any;
+  const empty = r && typeof r === "object" && Object.values(r).some((x: any) => Array.isArray(x?.sections) && (x.sections.length === 0 || x.sections.some((sec: any) => !sec.items?.length || !String(sec.label ?? "").trim())));
+  if (empty) return { ok: false, error: "Every section needs a name and at least one item." };
   return call("qa_template_save", { p_key: s(f, "key"), p_name: s(f, "name"), p_kind: s(f, "kind"), p_focus: s(f, "focus"),
     p_subjects: (s(f, "subjects") ?? "").split(",").map((x) => x.trim()).filter(Boolean), p_rubric: rubric, p_special: s(f, "special") === "on" },
     ["/admin"], "Template saved as a new version.");
