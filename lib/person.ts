@@ -23,6 +23,11 @@ export async function loadPerson(personId: string) {
     supabase.rpc("erp_writeback", { p_person: personId }),
     supabase.from("report_cards").select("*").eq("person_id", personId),
   ]);
+  // Added by migration 0010; both come back empty before it runs.
+  const [{ data: segScores }, { data: levels }] = await Promise.all([
+    supabase.rpc("person_segment_scores", { p_person: personId }),
+    supabase.from("settings").select("value, status").eq("key", "signal_thresholds").maybeSingle(),
+  ]);
 
   type Staff = { role: string; is_lead: boolean; classroom: any };
   const classrooms = ((staff.data ?? []) as Staff[]).filter((s) => s.classroom);
@@ -48,7 +53,25 @@ export async function loadPerson(personId: string) {
     writeback: writeback as any,
     reportCards: (reportCards ?? []) as any[],
     signals,
+    segScores: (Array.isArray(segScores) ? segScores : []) as { segment: string; name: string; avg_pct: number; visits: number; last: string }[],
+    levels: (levels?.value ?? null) as SignalLevels | null,
+    levelsDraft: levels ? levels.status !== "decided" : true,
   };
+}
+
+/** Where a signal turns from "watch" to "act now". Stored in settings.signal_thresholds (draft until Education signs off). */
+export type SignalLevels = {
+  attendance_on_time?: { act_below: number };
+  ungraded_backlog?: { act_from: number };
+  completion?: { act_below: number };
+  pulse?: { act_below: number };
+};
+
+/** Signal levels for screens that do not load a whole person (cohort and segment views). */
+export async function signalLevels(): Promise<{ levels: SignalLevels | null; draft: boolean }> {
+  const supabase = await db();
+  const { data } = await supabase.from("settings").select("value, status").eq("key", "signal_thresholds").maybeSingle();
+  return { levels: (data?.value ?? null) as SignalLevels | null, draft: data ? data.status !== "decided" : true };
 }
 
 export type PersonData = Awaited<ReturnType<typeof loadPerson>>;

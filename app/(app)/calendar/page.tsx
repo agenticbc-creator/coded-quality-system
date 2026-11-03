@@ -49,22 +49,22 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
 
   return (
     <div className="space-y-5">
-      <PageHeader eyebrow="D3 · X4 · schedule" title="Calendar"
+      <PageHeader eyebrow="Schedule" title="Calendar"
         sub="Visits, master classes and CCTP mock classes, with cohort dates and ERPNext unavailability. Add anything to Outlook or Google Calendar with the .ics download."
         actions={<>
-          <a href="/calendar/ics" className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-white px-3.5 text-[13.5px] font-medium text-navy ring-1 ring-inset ring-line hover:bg-canvas"><Icon name="download" className="h-4 w-4" /> My visits (.ics)</a>
+          <a href="/calendar/ics" className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-white px-3.5 text-[14px] font-medium text-navy ring-1 ring-inset ring-line hover:bg-canvas"><Icon name="download" className="h-4 w-4" /> My visits (.ics)</a>
         </>} />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-1">
           <Link href={q(offset - 1)} className="grid h-9 w-9 place-items-center rounded-lg bg-white ring-1 ring-line hover:bg-canvas" aria-label="Previous week"><Icon name="back" className="h-4 w-4" /></Link>
-          <Link href={q(0)} className="h-9 rounded-lg bg-white px-3 text-[13px] font-medium leading-9 ring-1 ring-line hover:bg-canvas">Today</Link>
+          <Link href={q(0)} className="h-9 rounded-lg bg-white px-3 text-[13.5px] font-medium leading-9 ring-1 ring-line hover:bg-canvas">Today</Link>
           <Link href={q(offset + 1)} className="grid h-9 w-9 place-items-center rounded-lg bg-white ring-1 ring-line hover:bg-canvas" aria-label="Next week"><Icon name="arrow" className="h-4 w-4" /></Link>
           <span className="ml-3 text-[15px] font-semibold text-navy">{range}</span>
         </div>
         <div className="flex rounded-lg bg-white p-0.5 ring-1 ring-line">
-          <Link href={q(offset, false)} className={cx("rounded-md px-3 py-1.5 text-[12.5px] font-medium", !onlyMine ? "bg-navy text-white" : "text-ink-600")}>Everything I can see</Link>
-          <Link href={q(offset, true)} className={cx("rounded-md px-3 py-1.5 text-[12.5px] font-medium", onlyMine ? "bg-navy text-white" : "text-ink-600")}>Only mine</Link>
+          <Link href={q(offset, false)} className={cx("rounded-md px-3 py-1.5 text-[13px] font-medium", !onlyMine ? "bg-navy text-white" : "text-ink-600")}>Everything I can see</Link>
+          <Link href={q(offset, true)} className={cx("rounded-md px-3 py-1.5 text-[13px] font-medium", onlyMine ? "bg-navy text-white" : "text-ink-600")}>Only mine</Link>
         </div>
       </div>
 
@@ -78,13 +78,13 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
             <div key={k} className={cx("min-h-[120px] min-w-0 border-b border-line p-2.5 md:min-h-[180px] md:border-0", weekend ? "bg-zebra" : "bg-white")}>
               <div className="mb-2 flex items-baseline justify-between">
                 <span className={cx("text-[11px] font-semibold uppercase tracking-wider", weekend ? "text-ink-400" : "text-ink-500")}>{DAYS[i]}</span>
-                <span className={cx("grid h-7 min-w-7 place-items-center px-1 text-[14px] font-bold tabular-nums", isToday ? "bg-navy text-white" : "text-navy")}>{d.getDate()}</span>
+                <span className={cx("grid h-7 min-w-7 place-items-center px-1 text-[14.5px] font-bold tabular-nums", isToday ? "bg-navy text-white" : "text-navy")}>{d.getDate()}</span>
               </div>
               {markers(k).map((m) => <div key={m} className="mb-1.5 truncate border-l-2 border-brand bg-brand-50 px-1.5 py-0.5 text-[11px] font-medium text-brand">{m}</div>)}
               {awayOn(k).map((a, j) => <div key={j} className="mb-1.5 truncate px-1.5 text-[11px] text-ink-500" title={a.note ?? ""}><Icon name="x" className="inline h-3 w-3" /> {a.person?.full_name} away</div>)}
               <div className="space-y-1.5">
                 {list.map((e) => (
-                  <Link key={e.id} href={e.href} className={cx("block rounded-md border-l-[3px] px-2 py-1.5 text-[11.5px] leading-snug transition hover:shadow-card",
+                  <Link key={e.id} href={e.href} className={cx("block rounded-md border-l-[3px] px-2 py-1.5 text-[12px] leading-snug transition hover:shadow-card",
                     e.tone === "navy" ? "border-navy bg-navy-100" : e.tone === "brand" ? "border-brand bg-brand-50" : e.tone === "amber" ? "border-tier3 bg-tier3-bg" : e.tone === "green" ? "border-tier1 bg-tier1-bg" : "border-ink-400 bg-canvas",
                     e.mine && "ring-1 ring-navy")}>
                     <div className="flex items-center gap-1 font-semibold text-navy"><span className="tabular-nums">{fmtTime(e.at)}</span> · {e.title}</div>
@@ -97,7 +97,7 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
           );
         })}
       </div>
-      <div className="flex flex-wrap gap-2 text-[12px]">
+      <div className="flex flex-wrap gap-2 text-[12.5px]">
         <Badge tone="brand">Education QA</Badge><Badge tone="amber">Operations QA</Badge><Badge>Shadowing</Badge><Badge tone="navy">Master class</Badge><Badge tone="green">CCTP mock class</Badge>
         <span className="text-ink-500">Outlined = assigned to you · Fri–Sat shaded</span>
       </div>

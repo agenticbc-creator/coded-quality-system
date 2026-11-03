@@ -21,7 +21,7 @@ export default async function PeopleApprovals() {
 
   return (
     <div>
-      <PageHeader eyebrow="B · contractor, instructor and TA approval" title="People approvals"
+      <PageHeader eyebrow="Contractor, instructor and TA approval" title="People approvals"
         sub="Every candidate goes through the same steps before Day 1. Final approval sits with the segment owner; the GM is kept informed and does not approve."
         actions={canStart ? (
           <Disclosure label="Start an approval" variant="primary">
@@ -52,19 +52,19 @@ export default async function PeopleApprovals() {
                   <Avatar name={p.person.full_name} />
                   <div>
                     <div className="text-[14.5px] font-semibold text-navy">{p.person.full_name}</div>
-                    <div className="text-[12px] text-ink-500">{p.target_role === "ta" ? "TA" : "Instructor"} · {SEGMENT[p.segment_id]}{p.program ? ` · ${p.program.name}` : ""} · ERPNext {p.person.erp_contractor_status}</div>
+                    <div className="text-[12.5px] text-ink-500">{p.target_role === "ta" ? "TA" : "Instructor"} · {SEGMENT[p.segment_id]}{p.program ? ` · ${p.program.name}` : ""} · ERPNext {p.person.erp_contractor_status}</div>
                   </div>
                 </div>
                 <div className="text-right">
                   <Badge tone={p.status === "cleared" ? "green" : p.status === "not_approved" ? "red" : "amber"}>{p.status === "cleared" ? "Cleared to teach" : p.status === "not_approved" ? "Not approved" : `Next: ${STEP[current?.step]?.label}`}</Badge>
-                  {current?.opened_at && p.status === "in_pipeline" && <div className="mt-1 text-[11.5px] text-ink-500">{STEP[current.step].owner} · waiting {ago(current.opened_at).replace(" ago", "")}</div>}
+                  {current?.opened_at && p.status === "in_pipeline" && <div className="mt-1 text-[12px] text-ink-500">{STEP[current.step].owner} · waiting {ago(current.opened_at).replace(" ago", "")}</div>}
                 </div>
               </div>
               <div className="mt-4 grid grid-cols-8 gap-1">
                 {steps.map((s: any) => (
                   <div key={s.id} title={STEP[s.step].label}>
                     <div className={cx("h-1.5 rounded-full", s.status === "done" ? "bg-tier1" : s.status === "failed" ? "bg-tier4" : s.opened_at ? "bg-tier3" : "bg-line")} />
-                    <div className="mt-1 hidden truncate text-[10.5px] text-ink-500 md:block">{STEP[s.step].label}</div>
+                    <div className="mt-1 hidden truncate text-[11px] text-ink-500 md:block">{STEP[s.step].label}</div>
                   </div>
                 ))}
               </div>

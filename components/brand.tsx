@@ -1,19 +1,25 @@
-/* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
 import { cx } from "./ui";
 
-/** The official CODED wordmark (boxed logo). `tone` picks the white or navy file. */
-export function Logo({ tone = "white", className }: { tone?: "white" | "navy"; className?: string }) {
-  return <img src={tone === "white" ? "/brand/coded-logo-white-600.png" : "/brand/coded-logo-navy-600.png"} alt="CODED" width={600} height={208} className={cx("h-auto select-none", className)} draggable={false} />;
+/** The official boxed CODED wordmark (same paths as the CODED Product Theme), drawn in the current text colour. */
+export function Logo({ className }: { tone?: "white" | "navy"; className?: string }) {
+  return (
+    <svg viewBox="0 0 1321 463" role="img" aria-label="CODED" className={cx("h-auto", className)} xmlns="http://www.w3.org/2000/svg">
+      <path fill="currentColor" d="M1089.05 341.036H1005.52V121.964H1089.05C1149.99 121.964 1199.56 171.086 1199.56 231.525C1199.56 291.963 1149.99 341.036 1089.05 341.036V341.036ZM1089.05 169.011H1053.02V293.99H1089.05C1123.8 293.99 1152.12 265.969 1152.12 231.525C1152.12 197.08 1123.8 169.011 1089.05 169.011ZM801.206 121.964H967.765V169.011H848.653V210.67H937.27V252.379H848.653V294.039H967.765V341.085H801.206V121.964V121.964ZM659.36 341.085H578.354V121.915H659.36C720.349 121.915 769.921 171.086 769.921 231.475C769.921 291.865 720.3 341.036 659.36 341.036V341.085ZM659.36 152.752H609.541V310.1H659.36C703.15 310.1 738.784 274.815 738.784 231.426C738.784 188.037 703.15 152.752 659.36 152.752V152.752ZM436.508 340.937C408.188 340.937 379.868 330.263 358.32 308.914C337.413 288.208 325.947 260.682 325.947 231.426C325.947 202.17 337.413 174.644 358.32 153.938C379.226 133.232 407.002 121.866 436.508 121.866C466.014 121.866 493.84 133.281 514.746 153.938C535.603 174.644 547.119 202.17 547.119 231.426C547.119 260.682 535.603 288.208 514.746 308.914C493.197 330.263 464.877 340.937 436.508 340.937ZM492.654 175.781C477.629 160.906 457.711 152.703 436.508 152.703C415.305 152.703 395.387 160.906 380.363 175.781C365.387 190.656 357.133 210.423 357.133 231.426C357.133 252.429 365.387 272.196 380.363 287.022C411.302 317.661 461.714 317.71 492.654 287.022C507.678 272.147 515.932 252.379 515.932 231.426C515.932 210.473 507.678 190.656 492.654 175.781ZM285.864 175.781C270.839 160.906 250.922 152.703 229.669 152.703C208.417 152.703 188.549 160.906 173.524 175.781C158.548 190.656 150.245 210.423 150.245 231.426C150.245 252.429 158.548 272.196 173.524 287.022C204.463 317.661 254.826 317.71 285.815 287.022C288.731 284.106 291.499 280.844 294.118 277.138L308.204 308.469C308.204 308.469 307.957 308.766 307.808 308.864C286.26 330.213 257.94 340.887 229.669 340.887C201.399 340.887 173.03 330.213 151.481 308.864C108.383 266.118 108.383 196.635 151.481 153.889C172.387 133.182 200.114 121.816 229.669 121.816C259.225 121.816 287.001 133.232 307.858 153.889C308.006 154.037 308.105 154.185 308.253 154.284L294.167 185.615C291.499 181.909 288.78 178.647 285.864 175.732" />
+      <path fill="currentColor" d="M1290.16 432.163H30.8405V30.837H1290.11V432.163H1290.16ZM1321 0H0V463H1321V0Z" />
+    </svg>
+  );
 }
 
-/** Sidebar / header lock-up: logo + product name. */
-export function BrandLockup({ tone = "white", href = "/" }: { tone?: "white" | "navy"; href?: string }) {
+/** Product lockup, as in the CODED Product Theme: wordmark, a light ×, then the product name. */
+export function BrandLockup({ tone = "white", href = "/", sub }: { tone?: "white" | "navy"; href?: string; sub?: string }) {
   return (
-    <Link href={href} className="group flex items-center gap-3 px-2" aria-label="CODED Quality home">
-      <Logo tone={tone} className="w-[92px]" />
-      <span className={cx("border-l pl-3 text-[11px] font-semibold uppercase leading-[1.25] tracking-[0.14em]", tone === "white" ? "border-white/20 text-white/70" : "border-navy/20 text-navy/70")}>
-        Quality<br />System
+    <Link href={href} className={cx("group flex items-center gap-3 px-2", tone === "white" ? "text-white" : "text-navy")} aria-label="CODED Quality home">
+      <Logo className="w-[78px]" />
+      <span aria-hidden="true" className={cx("text-[18px] font-light", tone === "white" ? "text-[#879AC0]" : "text-ink-500")}>×</span>
+      <span className="text-[16px] font-extrabold leading-tight tracking-[-0.01em]">
+        Quality
+        {sub && <small className={cx("label-mono mt-0.5 block !text-[10px]", tone === "white" && "!text-[#879AC0]")}>{sub}</small>}
       </span>
     </Link>
   );

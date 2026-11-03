@@ -44,12 +44,12 @@ export function ScheduleForm({ cohorts, people, templates, initial }: { cohorts:
       </div>
 
       <div>
-        <span className="mb-1.5 block text-[12.5px] font-medium text-ink-600">Type</span>
+        <span className="mb-1.5 block text-[13px] font-medium text-ink-600">Type</span>
         <div className="grid gap-2 sm:grid-cols-3">
           {[["education", "Education QA", "Teaching quality, scored by an educator"], ["operations", "Operations QA", "Classroom operations"], ["shadowing", "Shadowing", "Development; checklist and notes"]].map(([k, l, h]) => (
             <button key={k} type="button" onClick={() => setKind(k)} className={cx("rounded-xl p-3 text-left ring-1 ring-inset transition", kind === k ? "bg-navy text-white ring-navy" : "bg-white ring-line hover:bg-canvas")}>
-              <span className="block text-[13.5px] font-semibold">{l}</span>
-              <span className={cx("block text-[11.5px]", kind === k ? "text-white/70" : "text-ink-500")}>{h}</span>
+              <span className="block text-[14px] font-semibold">{l}</span>
+              <span className={cx("block text-[12px]", kind === k ? "text-white/70" : "text-ink-500")}>{h}</span>
             </button>
           ))}
         </div>
@@ -71,6 +71,7 @@ export function ScheduleForm({ cohorts, people, templates, initial }: { cohorts:
             <option value="tas">The TAs</option>
             <option value="classroom_management">Classroom management</option>
             <option value="content">The content</option>
+            <option value="alignment">Alignment before Day 1</option>
           </select>
         </Field>
         <Field label="Template">
@@ -98,7 +99,7 @@ export function ScheduleForm({ cohorts, people, templates, initial }: { cohorts:
         <Field label="Date"><input type="date" name="date" required value={date} onChange={(e) => setDate(e.target.value)} className={input} /></Field>
         <Field label="Time (Kuwait)"><input type="time" name="time" required defaultValue={initial?.time ?? "09:30"} className={input} /></Field>
       </div>
-      {kind === "education" && <p className="text-[12.5px] text-ink-500">The educator is never told about an education QA visit in advance. The observer gets a calendar invite with a reminder the day before.</p>}
+      {kind === "education" && <p className="text-[13px] text-ink-500">The educator is never told about an education QA visit in advance. The observer gets a calendar invite with a reminder the day before.</p>}
       <div className="flex justify-end"><Submit icon="send">{initial?.id ? "Save and send invite" : "Schedule and send invite"}</Submit></div>
     </ActionForm>
   );
