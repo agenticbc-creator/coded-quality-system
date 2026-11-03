@@ -4,14 +4,15 @@ import { db } from "@/lib/supabase";
 import { Badge, Card, CardTitle, Field, Notice, PageHeader, StatusBadge, Table, cx, input, td } from "@/components/ui";
 import { ActionForm, Submit } from "@/components/forms";
 import { Icon } from "@/components/icons";
-import { importContractors, importSessions, personAdd, personRoles, qaTemplateSave, runDailyJobs, schemaVersion, scoringTemplateSave, settingsSet } from "@/app/actions";
+import { importAvailability, importContracts, importContractors, importSessions, personAdd, programSave, personRoles, qaTemplateSave, runDailyJobs, schemaVersion, scoringTemplateSave, settingsSet } from "@/app/actions";
 import { hasServiceKey } from "@/lib/supabase-admin";
 import { RubricEditor } from "@/components/rubric-editor";
+import { isDemo } from "@/lib/config";
 import { SEGMENT, ago, fmtDateTime } from "@/lib/format";
 
 export const metadata = { title: "System" };
 
-const TABS = [["sync", "Sync health"], ["scoring", "Scoring templates"], ["templates", "QA templates"], ["rules", "Rules and drafts"], ["access", "Roles and access"], ["audit", "Audit log"]] as const;
+const TABS = [["sync", "Data and imports"], ["programs", "Programs"], ["scoring", "Scoring templates"], ["templates", "QA templates"], ["rules", "Rules and drafts"], ["access", "Roles and access"], ["audit", "Audit log"]] as const;
 const ROLES = ["segment_owner", "education_principal", "senior_instructor", "education_officer", "operations", "program_coordinator", "education_coordinator", "instructor", "lead_instructor", "ta", "content_creator", "hr", "gm", "system_owner"];
 
 export default async function Admin({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
@@ -30,6 +31,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
         ))}
       </div>
       {tab === "sync" && <Sync supabase={supabase} owner={owner} v={await schemaVersion()} />}
+      {tab === "programs" && <Programs supabase={supabase} owner={owner} v={await schemaVersion()} />}
       {tab === "scoring" && <Scoring supabase={supabase} />}
       {tab === "templates" && <Templates supabase={supabase} />}
       {tab === "rules" && <Rules supabase={supabase} owner={owner} />}
@@ -60,7 +62,7 @@ async function Sync({ supabase, owner, v }: { supabase: any; owner: boolean; v: 
       </div>
       <Card>
         <CardTitle icon="refresh" sub="Daily pull, 24/72 reminders and escalations, approval reminders after 3 working days, visit and plan reminders, pulse triggers and JD checklist ticks. After migration 0009 the database runs them every day at 06:00 Kuwait; notification emails follow at 07:00 once email is set up.">Daily jobs</CardTitle>
-        <Notice tone="brand">In this standalone build ERPNext and the CODED App are represented by sample tables. The daily pull records a sync run against them; Portal v2 replaces it with the real read.</Notice>
+        <Notice tone="brand">{isDemo() ? "This deployment runs on sample data." : "There is no live feed from ERPNext or the CODED App yet."} Until Portal v2 feeds this system, contractors, contracts, unavailable dates and the timetable come in through the CSV imports below; each import is listed here as a sync run.</Notice>
         {owner && <ActionForm action={runDailyJobs} className="mt-4"><Submit icon="refresh">Run daily jobs now</Submit></ActionForm>}
       </Card>
       <Card pad={false} className="px-5 pb-2 pt-4">
@@ -73,27 +75,76 @@ async function Sync({ supabase, owner, v }: { supabase: any; owner: boolean; v: 
       {owner && v >= 10 && (
         <Card>
           <CardTitle icon="database" sub="Until Portal v2 feeds this system, records can come in as CSV exports. Use this only on a database CODED has agreed may hold real records.">Import from CSV</CardTitle>
-          <Notice tone="amber" title="Real people's data">Today this database holds sample data only. Importing real contractors or timetables is a decision for CODED (hosting and access), not a technical step.</Notice>
+          {isDemo() && <Notice tone="amber" title="Real people's data">This deployment holds sample data. Clear it (supabase/live/1_clear_sample_data.sql) and turn demo sign-in off before importing real records.</Notice>}
           <div className="mt-4 grid gap-5 lg:grid-cols-2">
             <ActionForm action={importContractors} className="space-y-2">
               <div className="text-[14px] font-bold text-ink">Contractors (ERPNext Supplier export)</div>
-              <p className="label-mono">erp_supplier_id, full_name, email, arabic_name, home_segment, service_category, instructor_level, contractor_status</p>
+              <p className="label-mono">erp_supplier_id, full_name, email, arabic_name, home_segment, role, service_category, instructor_level, contractor_status, cleared_to_teach</p>
               <input type="file" name="file" accept=".csv,text/csv" className={input} />
               <textarea name="csv" rows={3} className={input} placeholder={"erp_supplier_id,full_name,email,home_segment\nSUP-0001,First Last,first@example.com,pro"} />
-              <p className="text-[12px] text-ink-500">Matched on erp_supplier_id: new rows are added as instructors, existing ones are updated. Up to 2,000 rows.</p>
+              <p className="text-[12px] text-ink-500">Matched on erp_supplier_id, then on email. New rows are added as instructors (role "ta" for TAs). cleared_to_teach = yes marks someone CODED has already approved; everyone else goes through the approval pipeline. Up to 2,000 rows.</p>
               <Submit size="sm" variant="secondary" icon="upload">Import contractors</Submit>
             </ActionForm>
             <ActionForm action={importSessions} className="space-y-2">
               <div className="text-[14px] font-bold text-ink">Timetable (CODED App sessions)</div>
-              <p className="label-mono">classroom_id, starts_at, topic, attendance_logged_at</p>
+              <p className="label-mono">cohort, classroom, starts_at, topic, attendance_logged_at</p>
               <input type="file" name="file" accept=".csv,text/csv" className={input} />
-              <textarea name="csv" rows={3} className={input} placeholder={"classroom_id,starts_at,topic\n<classroom id>,2026-11-08T09:00:00+03:00,Intro to APIs"} />
+              <textarea name="csv" rows={3} className={input} placeholder={"cohort,classroom,starts_at,topic\nFull Stack — Cohort 1,Classroom A,2026-11-08T09:00:00+03:00,Intro to APIs"} />
               <p className="text-[12px] text-ink-500">Sessions already in the timetable are skipped. Visit booking uses the timetable to keep class visits on teaching days.</p>
               <Submit size="sm" variant="secondary" icon="upload">Import sessions</Submit>
             </ActionForm>
+            {v >= 11 && (
+              <ActionForm action={importContracts} className="space-y-2">
+                <div className="text-[14px] font-bold text-ink">Contracts (ERPNext)</div>
+                <p className="label-mono">contract_id, erp_supplier_id, role, segment, program, cohort, status, start_date, end_date, rate_type, rate, signed_at</p>
+                <input type="file" name="file" accept=".csv,text/csv" className={input} />
+                <textarea name="csv" rows={3} className={input} placeholder={"contract_id,erp_supplier_id,role,segment,status,start_date,end_date\nCON-0001,SUP-0001,Instructor,pro,Active,2026-11-01,2027-02-28"} />
+                <p className="text-[12px] text-ink-500">Import contractors first. Program and cohort are optional names. Only someone with an Active contract can be staffed on a classroom.</p>
+                <Submit size="sm" variant="secondary" icon="upload">Import contracts</Submit>
+              </ActionForm>
+            )}
+            {v >= 11 && (
+              <ActionForm action={importAvailability} className="space-y-2">
+                <div className="text-[14px] font-bold text-ink">Unavailable dates (ERPNext)</div>
+                <p className="label-mono">erp_supplier_id, from_date, to_date, note</p>
+                <input type="file" name="file" accept=".csv,text/csv" className={input} />
+                <textarea name="csv" rows={3} className={input} placeholder={"erp_supplier_id,from_date,to_date,note\nSUP-0001,2026-12-20,2026-12-24,Leave"} />
+                <p className="text-[12px] text-ink-500">Visit booking refuses an observer on these dates.</p>
+                <Submit size="sm" variant="secondary" icon="upload">Import unavailable dates</Submit>
+              </ActionForm>
+            )}
           </div>
         </Card>
       )}
+    </div>
+  );
+}
+
+async function Programs({ supabase, owner, v }: { supabase: any; owner: boolean; v: number }) {
+  const { data } = await supabase.from("programs").select("*, cohorts(id)").order("name");
+  const TYPE: Record<string, string> = { short: "Short (workshop)", long: "Long", bootcamp: "Bootcamp" };
+  const form = (p?: any) => (
+    <ActionForm action={programSave} resetOnSuccess={!p} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_90px_90px_auto] lg:items-end">
+      {p && <input type="hidden" name="id" value={p.id} />}
+      <Field label="Program"><input name="name" required defaultValue={p?.name} className={input} /></Field>
+      <Field label="Product (optional)"><input name="product" defaultValue={p?.product ?? ""} className={input} /></Field>
+      <Field label="Segment"><select name="segment" defaultValue={p?.segment_id ?? "pro"} className={input}>{Object.entries(SEGMENT).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Field>
+      <Field label="Type"><select name="type" defaultValue={p?.program_type ?? "bootcamp"} className={input}>{Object.entries(TYPE).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Field>
+      <Field label="Weeks"><input type="number" name="weeks" min={1} max={104} defaultValue={p?.duration_weeks ?? 12} className={input} /></Field>
+      <Field label="Sessions / wk"><input type="number" name="sessions" min={1} max={14} defaultValue={p?.sessions_per_week ?? 5} className={input} /></Field>
+      <Submit size="sm" variant={p ? "secondary" : "primary"}>{p ? "Save" : "Add program"}</Submit>
+    </ActionForm>
+  );
+  return (
+    <div className="space-y-4">
+      <Notice tone="brand">Programs come from Portal v2 once it feeds this system. Until then add them here; the type sets the default QA plan and the weeks set its length. Segment owners can add programs in their own segment.</Notice>
+      {v >= 11 && owner && <Card><CardTitle icon="plus">Add a program</CardTitle>{form()}</Card>}
+      {(data ?? []).length === 0 ? <Card><p className="text-[13.5px] text-ink-500">No programs yet.</p></Card> : (data ?? []).map((p: any) => (
+        <Card key={p.id}>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><b className="text-[15px] text-navy">{p.name}</b><span className="text-[12.5px] text-ink-500">{SEGMENT[p.segment_id]} · {TYPE[p.program_type]} · {p.cohorts?.length ?? 0} {p.cohorts?.length === 1 ? "cohort" : "cohorts"}</span></div>
+          {v >= 11 && owner ? form(p) : null}
+        </Card>
+      ))}
     </div>
   );
 }

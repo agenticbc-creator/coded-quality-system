@@ -428,7 +428,7 @@ export async function importContractors(_: ActionResult, f: FormData) {
   const rows = parseCsv(await csvFrom(f));
   if (!rows.length) return { ok: false, error: "No rows found. The first line must be the header." };
   const r = await call("import_contractors", { p_rows: rows }, ["/admin", "/people"], "");
-  return r.ok ? { ...r, message: `Imported: ${(r.data as any)?.new ?? 0} new, ${(r.data as any)?.updated ?? 0} updated.` } : r;
+  return r.ok ? { ...r, message: `Imported: ${(r.data as any)?.new ?? 0} new, ${(r.data as any)?.updated ?? 0} updated${(r.data as any)?.cleared ? `, ${(r.data as any).cleared} marked cleared to teach` : ""}.` } : r;
 }
 export async function importSessions(_: ActionResult, f: FormData) {
   const rows = parseCsv(await csvFrom(f));
@@ -442,4 +442,22 @@ export async function setLang(f: FormData) {
   const store = await cookies();
   store.set("lang", s(f, "lang") === "ar" ? "ar" : "en", { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
   revalidatePath("/", "layout");
+}
+
+// ── Migration 0011: live set-up without Portal v2 ─────────
+export async function programSave(_: ActionResult, f: FormData) {
+  return call("program_save", { p_id: s(f, "id"), p_name: s(f, "name"), p_product: s(f, "product"), p_segment: s(f, "segment"), p_type: s(f, "type"),
+    p_weeks: n(f, "weeks"), p_sessions: n(f, "sessions") }, ["/admin", "/cohorts"], s(f, "id") ? "Program updated." : "Program added. Segment owners can now create cohorts on it.");
+}
+export async function importContracts(_: ActionResult, f: FormData) {
+  const rows = parseCsv(await csvFrom(f));
+  if (!rows.length) return { ok: false, error: "No rows found. The first line must be the header." };
+  const r = await call("import_contracts", { p_rows: rows }, ["/admin", "/people"], "");
+  return r.ok ? { ...r, message: `Imported: ${(r.data as any)?.new ?? 0} new contracts, ${(r.data as any)?.updated ?? 0} updated.` } : r;
+}
+export async function importAvailability(_: ActionResult, f: FormData) {
+  const rows = parseCsv(await csvFrom(f));
+  if (!rows.length) return { ok: false, error: "No rows found. The first line must be the header." };
+  const r = await call("import_availability", { p_rows: rows }, ["/admin", "/visits/new"], "");
+  return r.ok ? { ...r, message: `Imported ${(r.data as any)?.new ?? 0} unavailable periods (${(r.data as any)?.skipped ?? 0} already there).` } : r;
 }

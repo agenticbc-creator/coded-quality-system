@@ -74,6 +74,31 @@ per-person release (`visit_release(..., p_people)`), coordinator booking, and sc
 pg_cron at 06:00 Kuwait time. The release queue switches to one block per person by itself once
 `settings.schema_version` is 9. Also turn off **Allow new users to sign up** in Supabase Auth.
 
+## Going live (no sample data)
+
+Do these in order. Steps 1, 5, 6 and 7 are settings only the project owner can change; the SQL steps run in the
+Supabase SQL editor of project `dceyqaobmasqibclchdg`.
+
+1. **Agree where real data lives.** This standalone Supabase project will hold real names, emails, scores and private
+   feedback notes. CODED should agree to that (hosting region eu-central-1, who has dashboard access, backups) or move to Portal v2 first.
+2. **Merge** the pull request into `main` (Vercel deploys production from it).
+3. **Run the migrations** `0009_audit_fixes.sql`, `0010_signoffs_reviews_evidence.sql`, `0011_live_readiness.sql`, in that order.
+4. **Back up, then clear the sample data:** `supabase/live/1_clear_sample_data.sql`. It deletes every sample person, program,
+   cohort, visit, score and note, and the `@demo.coded.test` accounts; it keeps segments, templates, settings and JD items.
+   It refuses to run if it finds anyone who is not a sample person. It cannot be undone.
+5. **Supabase Auth settings:** turn off *Allow new users to sign up*; set the Site URL to
+   `https://coded-quality-system.vercel.app` and add `https://coded-quality-system.vercel.app/login/set-password` to the Redirect URLs;
+   set up custom SMTP (the built-in sender is rate-limited and meant for testing) so invites and password resets arrive.
+6. **Vercel environment:** delete `DEMO_PASSWORD` (this turns off the sample personas and the "Sample data" labels).
+   Optional: `SUPABASE_SERVICE_ROLE_KEY` (invite emails sent from the app), `RESEND_API_KEY` + `EMAIL_FROM` + `CRON_SECRET` (daily notification email).
+   Redeploy after changing them.
+7. **First system owner:** put your name and work email at the top of `supabase/live/2_first_system_owner.sql`, run it,
+   then invite that email under Authentication > Users > Invite user and set a password from the email.
+8. **Set up from the System page:** programs (System → Programs), people (Add a person, or import the ERPNext contractors CSV),
+   contracts and unavailable dates (CSV), then segment owners create cohorts and the timetable comes in by CSV.
+
+Rehearsed end to end on a throwaway database by `npm run test:db` (`supabase/tests/live.sql`).
+
 ## Second round (3 Nov 2026)
 
 **Database: apply `supabase/migrations/0010_signoffs_reviews_evidence.sql`** after 0009 (SQL editor, once; it is

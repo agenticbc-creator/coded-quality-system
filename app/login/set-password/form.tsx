@@ -47,7 +47,7 @@ export function SetPasswordForm() {
   }
 
   if (ready === "wait") return <p className="mt-5 text-[13.5px] text-ink-500">Checking your link…</p>;
-  if (ready === "none") return <p className="mt-5 rounded-lg bg-tier4-bg px-3 py-2 text-[13.5px] text-[#7A1F1A]">{err ?? "This link has expired or was already used."} Ask the system owner to send a new invite.</p>;
+  if (ready === "none") return <p className="mt-5 rounded-lg bg-tier4-bg px-3 py-2 text-[13.5px] text-[#7A1F1A]">{err ?? "This link has expired or was already used."} Ask the system owner for a new invite, or use Forgot your password on the sign-in page.</p>;
   return (
     <form onSubmit={submit} className="mt-5 space-y-3">
       <div><span className={label}>New password</span><input name="password" type="password" autoComplete="new-password" required className={input} /></div>

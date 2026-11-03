@@ -4,6 +4,8 @@ import { input, label } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import { Logo } from "@/components/brand";
 import { InviteRedirect } from "./invite-redirect";
+import { isDemo } from "@/lib/config";
+import Link from "next/link";
 
 export const metadata = { title: "Sign in" };
 
@@ -37,7 +39,7 @@ const GROUPS: { title: string; people: Persona[] }[] = [
 
 export default async function Login({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const { error } = await searchParams;
-  const demo = Boolean(process.env.DEMO_PASSWORD);
+  const demo = isDemo();
   return (
     <main className="grid min-h-screen lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
       <InviteRedirect />
@@ -57,16 +59,16 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
           <p className="mt-6 max-w-md text-[15px] leading-relaxed text-white/70">
             Content and people approvals, classroom shadowing and QA, composite scores and the CODED Certified Trainer Program, in one place.
           </p>
-          <dl className="mt-10 grid max-w-md grid-cols-4 border-y border-white/15 py-5">
+          {demo && <dl className="mt-10 grid max-w-md grid-cols-4 border-y border-white/15 py-5">
             {[["50%", "QA"], ["20%", "Ops QA"], ["20%", "360°"], ["10%", "Account."]].map(([v, l]) => (
               <div key={l} className="border-r border-white/10 px-3 first:pl-0 last:border-0">
                 <dt className="text-[24px] font-bold tabular-nums tracking-tight">{v}</dt>
                 <dd className="text-[12px] text-white/55">{l}</dd>
               </div>
             ))}
-          </dl>
+          </dl>}
         </div>
-        <p className="text-[13px] text-[#879AC0]">Sample data · every person shown is fictional.</p>
+        <p className="text-[13px] text-[#879AC0]">{demo ? "Sample data · every person shown is fictional." : "For CODED staff and contractors. Accounts are created by the system owner."}</p>
       </section>
 
       <section className="flex items-center justify-center bg-canvas px-5 py-10 lg:px-12">
@@ -111,6 +113,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
             <div><span className={label}>Password</span><input name="password" type="password" autoComplete="current-password" className={input} /></div>
             <Submit>Sign in</Submit>
           </ActionForm>
+          <p className="mt-3 text-[13px] text-ink-600"><Link href="/login/reset" className="font-semibold text-brand">Forgot your password?</Link> · No account? Ask the system owner to add you.</p>
         </div>
       </section>
     </main>

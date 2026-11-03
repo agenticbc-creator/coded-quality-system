@@ -17,7 +17,7 @@ export default function Coverage() {
         </div>
         <div className="self-center">
           <div className="text-[20px] font-bold">{c.built} of {c.total} requirements are working in this build.</div>
-          <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-white/70">The {c.partial} partial items work end to end here, on sample data, and need an outside system for the last step: the live Portal v2 feed, writing into ERPNext, email delivery, the Trainer Learning Path API and the CODED App changes for who graded and who took attendance.</p>
+          <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-white/70">The {c.partial} partial items work end to end here and need an outside system for the last step: the live Portal v2 feed, writing into ERPNext, email delivery, the Trainer Learning Path API and the CODED App changes for who graded and who took attendance.</p>
           <div className="mt-4 h-2 max-w-xl overflow-hidden bg-white/15"><div className="h-full bg-[#8DA4FF]" style={{ width: `${pct}%` }} /></div>
         </div>
       </section>

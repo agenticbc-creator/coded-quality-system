@@ -8,6 +8,7 @@ import { BrandLockup } from "@/components/brand";
 import { CommandPalette, type CommandItem } from "@/components/command";
 import { setLang, signOut } from "@/app/actions";
 import { getLang, tr } from "@/lib/i18n";
+import { isDemo } from "@/lib/config";
 import { SEGMENT } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -65,9 +66,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <CommandPalette items={commands} />
           </div>
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-tier3-bg px-2.5 py-1 font-mono text-[10.5px] font-bold uppercase tracking-[0.08em] text-tier3" title={tr(lang, "Every person shown is fictional")}>
-              <span className="h-1.5 w-1.5 rounded-full bg-tier3" /> {tr(lang, "Sample data")}
-            </span>
+            {isDemo() && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-tier3-bg px-2.5 py-1 font-mono text-[10.5px] font-bold uppercase tracking-[0.08em] text-tier3" title={tr(lang, "Every person shown is fictional")}>
+                <span className="h-1.5 w-1.5 rounded-full bg-tier3" /> {tr(lang, "Sample data")}
+              </span>
+            )}
             <form action={setLang}>
               <input type="hidden" name="lang" value={lang === "ar" ? "en" : "ar"} />
               <button className="h-10 rounded-full px-3 text-[13.5px] font-semibold text-ink ring-1 ring-hairline transition hover:bg-canvas" lang={lang === "ar" ? "en" : "ar"}

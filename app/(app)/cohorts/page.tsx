@@ -25,6 +25,7 @@ export default async function Cohorts() {
         actions={canCreate ? (
           <Disclosure label="New cohort" variant="primary">
             <Card className="w-[min(92vw,520px)]">
+              {(programs ?? []).length === 0 && <p className="mb-3 rounded-lg bg-tier3-bg px-3 py-2 text-[13px] text-[#6B4300]">Add a program first (System → Programs).</p>}
               <ActionForm action={cohortCreate} className="space-y-3">
                 <Field label="Program"><select name="program" required className={input}>{(programs ?? []).map((p: any) => <option key={p.id} value={p.id}>{p.name} · {SEGMENT[p.segment_id]} · {p.program_type}</option>)}</select></Field>
                 <Field label="Name"><input name="name" required className={input} placeholder="e.g. Full Stack — Cohort 4 (Jan 2027)" /></Field>

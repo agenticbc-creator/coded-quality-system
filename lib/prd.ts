@@ -119,7 +119,7 @@ export const PRD: Group[] = [
       { id: "N2", title: "Feedback on every action", priority: "P1", status: "built", where: "Every form" },
       { id: "R1", title: "Approval audit log", priority: "P0", status: "built", where: "/admin → Audit log" },
       { id: "R2", title: "Approvals dashboard by stage, age, approver", priority: "P1", status: "built", where: "/approvals" },
-      { id: "APP", title: "CODED App signals and 24/72 alerts", priority: "P0", status: "partial", where: "/me, /ops", note: "Runs on sample App data; the live feed needs the CODED App changes (who graded, who took attendance)." },
+      { id: "APP", title: "CODED App signals and 24/72 alerts", priority: "P0", status: "partial", where: "/me, /ops", note: "No live CODED App feed yet: the timetable comes in by CSV (with attendance times); grading, submissions, pulse and chat signals stay empty until the CODED App feed exists." },
     ],
   },
   {
