@@ -1,5 +1,5 @@
--- Two fictional coordinators for the demo (run after demo_seed.sql, with the same seed.demo_password set):
---   select set_config('seed.demo_password', '<password>', false);  -- then this file
+-- Two fictional coordinators for the demo (run after demo_seed.sql). They sign in with the same demo password
+-- as the other personas: copied from an existing demo account, or from seed.demo_password when that is set.
 -- Muna is the Education Coordinator for Professionals (books QA, sees status only).
 -- Omar is the Program Coordinator for Professionals (counts as Operations).
 with u as (
@@ -7,7 +7,8 @@ with u as (
     created_at, updated_at, confirmation_token, recovery_token, email_change_token_new, email_change, email_change_token_current,
     phone_change, phone_change_token, reauthentication_token, is_sso_user, is_anonymous)
   select '00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated', k || '@demo.coded.test',
-         crypt(current_setting('seed.demo_password'), gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{}',
+         coalesce(crypt(nullif(current_setting('seed.demo_password', true), ''), gen_salt('bf')),
+                  (select encrypted_password from auth.users where email = 'noura@demo.coded.test')), now(), '{"provider":"email","providers":["email"]}', '{}',
          now(), now(), '', '', '', '', '', '', '', '', false, false
   from (values ('muna'), ('omar')) v(k)
   where not exists (select 1 from auth.users where email = k || '@demo.coded.test')
