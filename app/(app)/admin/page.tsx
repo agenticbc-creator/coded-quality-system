@@ -15,9 +15,10 @@ export const metadata = { title: "System" };
 const TABS = [["sync", "Data and imports"], ["programs", "Programs"], ["scoring", "Scoring templates"], ["templates", "QA templates"], ["rules", "Rules and drafts"], ["access", "Roles and access"], ["audit", "Audit log"]] as const;
 const ROLES = ["segment_owner", "education_principal", "senior_instructor", "education_officer", "operations", "program_coordinator", "education_coordinator", "instructor", "lead_instructor", "ta", "content_creator", "hr", "gm", "system_owner"];
 
-export default async function Admin({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+export default async function Admin({ searchParams }: { searchParams: Promise<{ tab?: string; q?: string }> }) {
   const me = await getMe();
-  const tab = (await searchParams).tab ?? "sync";
+  const sp = await searchParams;
+  const tab = sp.tab ?? "sync";
   const supabase = await db();
   const owner = has(me, "system_owner");
 
@@ -35,7 +36,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
       {tab === "scoring" && <Scoring supabase={supabase} />}
       {tab === "templates" && <Templates supabase={supabase} />}
       {tab === "rules" && <Rules supabase={supabase} owner={owner} />}
-      {tab === "access" && <Access supabase={supabase} owner={owner} v={await schemaVersion()} />}
+      {tab === "access" && <Access supabase={supabase} owner={owner} v={await schemaVersion()} q={sp.q?.trim() ?? ""} />}
       {tab === "audit" && <Audit supabase={supabase} />}
     </div>
   );
@@ -267,8 +268,13 @@ async function Rules({ supabase, owner }: { supabase: any; owner: boolean }) {
   );
 }
 
-async function Access({ supabase, owner, v }: { supabase: any; owner: boolean; v: number }) {
-  const { data } = await supabase.from("people").select("*").order("full_name");
+// Staff roles: holders are listed by default; anyone else (instructors, TAs) is found by search.
+const STAFF_ROLES = ROLES.filter((r) => !["instructor", "ta"].includes(r));
+async function Access({ supabase, owner, v, q }: { supabase: any; owner: boolean; v: number; q: string }) {
+  const term = q.replace(/[%_,()]/g, " ").trim();
+  let query = supabase.from("people").select("*").order("full_name");
+  query = term ? query.or(`full_name.ilike.%${term}%,email.ilike.%${term}%,erp_supplier_id.ilike.%${term}%`) : query.overlaps("roles", STAFF_ROLES);
+  const { data } = await query.limit(60);
   return (
     <div className="space-y-3">
       <Notice tone="brand">Roles decide what each person sees (row-level security in the database). Changes are logged.</Notice>
@@ -296,6 +302,17 @@ async function Access({ supabase, owner, v }: { supabase: any; owner: boolean; v
           </ActionForm>
         </Card>
       )}
+      <form action="/admin" className="flex flex-wrap items-end gap-2">
+        <input type="hidden" name="tab" value="access" />
+        <label className="block"><span className="mb-1 block text-[12.5px] font-semibold text-ink-600">Find a person</span>
+          <input name="q" defaultValue={q} placeholder="Name, email or ERPNext ID" className="h-10 w-72 rounded-xl border border-line bg-white px-3 text-[14px]" /></label>
+        <button className="h-10 rounded-full bg-navy px-4 text-[13.5px] font-semibold text-white">Search</button>
+        {q && <Link href="/admin?tab=access" className="h-10 px-2 text-[13.5px] font-medium leading-10 text-brand">Clear</Link>}
+        <span className="ml-auto self-center text-[13px] text-ink-500">
+          {q ? `${(data ?? []).length} found${(data ?? []).length === 60 ? " (first 60)" : ""}` : "Showing people with a staff role. Search to give a role to an instructor or TA."}
+        </span>
+      </form>
+      {(data ?? []).length === 0 && <p className="text-[13.5px] text-ink-500">{q ? "Nobody matches." : "Nobody has a staff role yet."}</p>}
       {(data ?? []).map((p: any) => (
         <Card key={p.id}>
           <ActionForm action={personRoles}>

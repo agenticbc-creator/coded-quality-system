@@ -156,7 +156,9 @@ export default async function CohortPage({ params }: { params: Promise<{ id: str
           <Card>
             <CardTitle icon="clipboard" sub={c.qa_plan ? `Generated from the ${c.program.program_type} default · education QA weeks ${c.qa_plan.education_weeks?.join(", ")} · operations QA weeks ${c.qa_plan.operations_weeks?.join(", ")}` : "Default plan from the program type, created ahead on the program checklist, then edited if needed"}
               right={(owner || (ops && overseers.some((o: any) => o.person.id === me.id))) && c.status !== "closed" ? (
-                <ActionForm action={qaPlanGenerate}>{hid}<Submit size="sm" variant="secondary" icon="refresh">{c.qa_plan ? "Regenerate" : "Generate QA plan"}</Submit></ActionForm>
+                v >= 14
+                  ? <ActionForm action={qaPlanGenerate}>{hid}<Submit size="sm" variant="secondary" icon="refresh">{c.qa_plan ? "Regenerate" : "Generate QA plan"}</Submit></ActionForm>
+                  : <span className="text-[12.5px] text-tier3">Generating waits for database migration 0014</span>
               ) : undefined}>
               QA plan
             </CardTitle>

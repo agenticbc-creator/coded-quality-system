@@ -95,6 +95,12 @@ export function ScheduleForm({ cohorts, people, templates, initial }: { cohorts:
             <option value="" disabled>Pick a person</option>
             {eligible.map((p) => <option key={p.id} value={p.id} disabled={!!busy(p)}>{p.name}{busy(p) ? " — unavailable" : ""}</option>)}
           </select>
+          {eligible.length === 0 && (
+            <span className="mt-1 block text-[12px] text-tier3">
+              {kind === "operations" ? "Nobody has the Operations role yet." : kind === "education" ? "No full-time Education Officer, Senior Instructor or Education Principal yet." : "No cleared instructor is free to observe this class."}
+              {kind !== "shadowing" && " The system owner gives roles under System → Roles and access."}
+            </span>
+          )}
         </Field>
         <Field label="Date"><input type="date" name="date" required value={date} onChange={(e) => setDate(e.target.value)} className={input} /></Field>
         <Field label="Time (Kuwait)"><input type="time" name="time" required defaultValue={initial?.time ?? "09:30"} className={input} /></Field>

@@ -273,4 +273,50 @@ select pg_temp.act_as('noura');
 select pg_temp.ok(not (visit_context(current_setting('t.peer')::uuid)->>'peer')::boolean, 'shadowing: the segment owner still gets the full context');
 rollback;
 
+-- 0014: generating a QA plan keeps hand-booked visits, books on the cohort's teaching days at its class time, never in the past
+begin;
+select pg_temp.act_as('noura');
+-- A 5-week bootcamp starting on the Sunday at least a week from today
+select set_config('t.start', (current_date + 7 + ((7 - extract(isodow from current_date)::int) % 7))::text, true) \g /dev/null
+select set_config('t.co', cohort_create((select program_id from cohorts where id = (select fs from t_ids)), 'Plan test bootcamp',
+  current_setting('t.start')::date, current_setting('t.start')::date + 32, 1)::text, true) \g /dev/null
+reset role;
+-- Shadowing booked by hand from the timetable: week 2 Tuesday and week 3 Thursday, 18:00 Kuwait
+insert into visits (cohort_id, classroom_id, kind, mode, focus, scheduled_for, week_no, status, created_by)
+select current_setting('t.co')::uuid, cl.id, 'shadowing', 'planned', 'instructor',
+       ((current_setting('t.start')::date + x.off) + time '18:00') at time zone 'Asia/Kuwait', x.wk, 'planned', (select id from people where email = 'noura@demo.coded.test')
+from classrooms cl, (values (9, 2), (18, 3)) x(off, wk) where cl.cohort_id = current_setting('t.co')::uuid;
+select pg_temp.act_as('noura');
+select qa_plan_generate(current_setting('t.co')::uuid) \g /dev/null
+reset role;
+select pg_temp.ok((select count(*) from visits where cohort_id = current_setting('t.co')::uuid and not auto_planned) = 2, 'QA plan: the hand-booked shadowing visits stay');
+select pg_temp.ok((select count(*) from visits where cohort_id = current_setting('t.co')::uuid and kind = 'shadowing' and week_no = 2) = 1, 'QA plan: a week that already has shadowing gets no second one');
+select pg_temp.ok((select count(*) from visits where cohort_id = current_setting('t.co')::uuid and kind = 'shadowing') = 5
+  and (select count(*) from visits where cohort_id = current_setting('t.co')::uuid and kind = 'qa' and qa_type = 'education') = 2
+  and (select count(*) from visits where cohort_id = current_setting('t.co')::uuid and kind = 'qa' and qa_type = 'operations') = 1, 'QA plan: weekly shadowing, education QA weeks 2 and 4, operations QA week 3');
+select pg_temp.ok(not exists (select 1 from visits where cohort_id = current_setting('t.co')::uuid
+  and (extract(isodow from scheduled_for at time zone 'Asia/Kuwait') not in (2, 4) or (scheduled_for at time zone 'Asia/Kuwait')::time <> time '18:00')),
+  'QA plan: every visit on the cohort''s teaching weekday at its class time');
+select pg_temp.ok(not exists (select 1 from visits where cohort_id = current_setting('t.co')::uuid
+  and (scheduled_for at time zone 'Asia/Kuwait')::date not between current_setting('t.start')::date + (week_no - 1) * 7 and current_setting('t.start')::date + week_no * 7 - 1),
+  'QA plan: every visit falls inside its plan week');
+select pg_temp.ok((select count(*) from (select (scheduled_for at time zone 'Asia/Kuwait')::date from visits where cohort_id = current_setting('t.co')::uuid group by 1 having count(*) > 1) x) = 0,
+  'QA plan: visits spread over the teaching days instead of piling onto one');
+select pg_temp.act_as('noura');
+select qa_plan_generate(current_setting('t.co')::uuid) \g /dev/null
+reset role;
+select pg_temp.ok((select count(*) from visits where cohort_id = current_setting('t.co')::uuid) = 8
+  and (select count(*) from visits where cohort_id = current_setting('t.co')::uuid and not auto_planned) = 2, 'QA plan: regenerating replaces only generated visits');
+-- A live cohort part-way through: nothing is booked in the past, and Friday and Saturday are never used
+select pg_temp.act_as('noura');
+select set_config('t.co2', cohort_create((select program_id from cohorts where id = (select fs from t_ids)), 'Plan test running',
+  current_date - 20, current_date + 14, 1)::text, true) \g /dev/null
+select qa_plan_generate(current_setting('t.co2')::uuid) \g /dev/null
+reset role;
+select pg_temp.ok(exists (select 1 from visits where cohort_id = current_setting('t.co2')::uuid)
+  and not exists (select 1 from visits where cohort_id = current_setting('t.co2')::uuid
+    and ((scheduled_for at time zone 'Asia/Kuwait')::date < current_date or extract(isodow from scheduled_for at time zone 'Asia/Kuwait') in (5, 6))),
+  'QA plan: no visits in the past or on Friday or Saturday');
+rollback;
+
 \echo 'all access tests passed'
