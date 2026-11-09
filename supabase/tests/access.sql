@@ -219,4 +219,30 @@ select visit_respond(current_setting('t.v')::uuid, 'accept');
 select pg_temp.ok((select status from visits where id = current_setting('t.v')::uuid) = 'accepted', 'onboarding: accepted once onboarded on that template');
 rollback;
 
+-- 0013: clearing a contractor, staffing without ERPNext contracts, sign-in emails for imported records
+begin;
+insert into people (full_name, roles, home_segment, erp_supplier_id) values ('Imported TA', '{ta}', 'pro', 'SUP-IMP-1');
+select pg_temp.act_as('noura');
+select pg_temp.refused($$select classroom_assign((select room_a from t_ids), (select id from people where erp_supplier_id = 'SUP-IMP-1'), 'ta')$$, 'staffing: someone not cleared cannot be assigned', 'not cleared');
+select pg_temp.refused($$select person_set_approval((select id from people where erp_supplier_id = 'SUP-IMP-1'), 'cleared', 'ok')$$, 'clearance: a reason is required', 'Write why');
+select person_set_approval((select id from people where erp_supplier_id = 'SUP-IMP-1'), 'cleared', 'Hired as TA and approved in ERPNext');
+select classroom_assign((select room_a from t_ids), (select id from people where erp_supplier_id = 'SUP-IMP-1'), 'ta');
+select pg_temp.ok(exists (select 1 from classroom_staff where classroom_id = (select room_a from t_ids) and person_id = (select id from people where erp_supplier_id = 'SUP-IMP-1')),
+  'staffing: a cleared person is assigned while ERPNext contracts are not required');
+reset role;
+select pg_temp.ok(exists (select 1 from audit_log where action = 'person.approval' and entity_id = (select id::text from people where erp_supplier_id = 'SUP-IMP-1')), 'clearance: logged with its reason');
+update settings set value = '{"require_active_contract": true}' where key = 'staffing_rules';
+select pg_temp.act_as('noura');
+select pg_temp.refused($$select classroom_assign((select id from classrooms where cohort_id = (select fs from t_ids) and name = 'Classroom B'), (select id from people where erp_supplier_id = 'SUP-IMP-1'), 'ta')$$,
+  'staffing: with the contract rule on, no Active contract means no assignment', 'Active contract');
+select pg_temp.act_as('bader');
+select pg_temp.refused($$select person_set_approval((select id from people where erp_supplier_id = 'SUP-IMP-1'), 'not_started', 'Trying to undo it')$$, 'clearance: an instructor cannot clear people', 'segment owner');
+select pg_temp.refused($$select person_set_email((select id from people where erp_supplier_id = 'SUP-IMP-1'), 'imported.ta@example.com')$$, 'email: only the system owner sets sign-in emails', 'system owner');
+select pg_temp.act_as('tariq');
+select person_set_email((select id from people where erp_supplier_id = 'SUP-IMP-1'), 'Imported.TA@example.com');
+select pg_temp.ok((select email from people where erp_supplier_id = 'SUP-IMP-1') = 'imported.ta@example.com', 'email: saved in lower case on the imported record');
+select pg_temp.refused($$select person_set_email((select id from people where email = 'noura@demo.coded.test'), 'other@example.com')$$, 'email: a record that already signs in keeps its email', 'already signs in');
+select pg_temp.refused($$select person_set_email((select id from people where erp_supplier_id = 'SUP-IMP-1'), 'noura@demo.coded.test')$$, 'email: one email per record', 'already has this email');
+rollback;
+
 \echo 'all access tests passed'

@@ -102,6 +102,10 @@ Supabase SQL editor of project `dceyqaobmasqibclchdg`.
    then invite that email under Authentication > Users > Invite user and set a password from the email.
 8. **Set up from the System page:** programs (System → Programs), people (Add a person, or import the ERPNext contractors CSV),
    contracts and unavailable dates (CSV), then segment owners create cohorts and the timetable comes in by CSV.
+9. **Migration 0013 (staffing before contracts):** classroom staffing no longer needs an Active ERPNext contract until
+   the `staffing_rules` setting says `{"require_active_contract": true}` (turn it on once contracts are imported).
+   On a person's record, the segment owner can *Clear to teach* someone CODED already hired (the reason is logged),
+   and the system owner can give an imported record its sign-in email and send the invite, so the first sign-in links to it.
 
 Rehearsed end to end on a throwaway database by `npm run test:db` (`supabase/tests/live.sql`).
 

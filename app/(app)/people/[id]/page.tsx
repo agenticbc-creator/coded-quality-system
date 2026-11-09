@@ -5,9 +5,14 @@ import { db } from "@/lib/supabase";
 import { Breakdown, FeedbackList, Hero, History, JDChecklist, Plans, Profile, Review360, SegmentScores, Signals, Surveys, Trend, WriteBack } from "@/components/performance";
 import { Badge, Card, CardTitle, Empty, Field, PageHeader, Table, input, td } from "@/components/ui";
 import { ActionForm, Disclosure, Submit } from "@/components/forms";
-import { accountabilityAdd, planReview, planSave, schemaVersion } from "@/app/actions";
+import { accountabilityAdd, personSetApproval, personSetEmail, planReview, planSave, schemaVersion } from "@/app/actions";
 import { LinkButton } from "@/components/ui";
-import { fmtDate, num, visitLabel } from "@/lib/format";
+import Link from "next/link";
+import { STATUS_LABEL, fmtDate, fmtDateTime, num, visitLabel } from "@/lib/format";
+
+/** Notes brought in from Notion carry their own header; show who observed instead of the importing account. */
+const imported = (body: string) => /imported from Notion/.test(body.split("\n")[0] ?? "");
+const observedBy = (body: string) => body.match(/^Observed by: (.+)$/m)?.[1] ?? "";
 
 export default async function PersonPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -16,13 +21,20 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
   const d = await loadPerson(id);
   if (!d.person) notFound();
   const supabase = await db();
-  const [{ data: notes }, { data: scores }, v] = await Promise.all([
+  const [{ data: notes }, { data: scores }, v, { data: focusVisits }] = await Promise.all([
     supabase.from("feedback").select("*, author:people!feedback_author_id_fkey(full_name), cohort:cohorts(name)").eq("subject_id", id).order("created_at", { ascending: false }),
     supabase.from("visit_scores").select("*, visit:visits(kind, qa_type, mode, week_no, submitted_at, release_status, cohort:cohorts(name))").eq("subject_person_id", id),
     schemaVersion(),
+    // Visits that focus on this person: RLS shows them to owners, the Education Principal and the observer only.
+    supabase.from("visits").select("id, kind, qa_type, mode, status, scheduled_for, submitted_at, assignee_id, cohort:cohorts(name)").eq("focus_person_id", id).neq("status", "cancelled").order("scheduled_for", { ascending: false }),
   ]);
   const canSeeScores = Boolean(d.current) || d.composites.length > 0;
   const isOwner = has(me, "segment_owner");
+  const canClear = (isOwner || has(me, "education_principal", "system_owner")) && v >= 13;
+  const isSystemOwner = has(me, "system_owner") && v >= 13;
+  const p = d.person;
+  const upcomingVisits = (focusVisits ?? []).filter((x: any) => !x.submitted_at);
+  const pastVisits = (focusVisits ?? []).filter((x: any) => x.submitted_at);
   const canConfirm = isOwner || has(me, "senior_instructor", "education_principal", "lead_instructor");
   const liveCohort = d.classrooms.find((c) => c.classroom.cohort.status === "live")?.classroom.cohort;
 
@@ -59,22 +71,84 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
             <Card>
               <CardTitle icon="lock" sub="Private by default. Only released notes reach the educator, as a separate copy.">Notes (private)</CardTitle>
               <ul className="space-y-2.5">
-                {notes!.map((f: any) => (
-                  <li key={f.id} className="rounded-lg border border-line p-3 text-[13.5px]">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge tone={f.severity === "red_flag" ? "red" : f.type === "praise" ? "green" : f.type === "concern" ? "amber" : "neutral"}>{f.severity === "red_flag" ? `Red flag · ${f.red_flag_reason}` : f.type}</Badge>
-                      <Badge>{f.status.replace("_", " ")}</Badge>
-                      <span className="text-[12.5px] text-ink-500">{f.author?.full_name} · {fmtDate(f.created_at)} · {f.cohort?.name}</span>
-                    </div>
-                    <p className="mt-1.5 text-ink">{f.body}</p>
-                  </li>
-                ))}
+                {notes!.map((f: any) => {
+                  const imp = imported(f.body);
+                  const who = imp ? `From Notion · observed by ${observedBy(f.body) || "not recorded"}` : f.author?.full_name;
+                  const long = f.body.length > 480;
+                  const cut = long ? (f.body.lastIndexOf("\n", 420) > 200 ? f.body.lastIndexOf("\n", 420) : 420) : 0;
+                  return (
+                    <li key={f.id} className="rounded-lg border border-line p-3 text-[13.5px]">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge tone={f.severity === "red_flag" ? "red" : f.type === "praise" ? "green" : f.type === "concern" ? "amber" : "neutral"}>{f.severity === "red_flag" ? `Red flag · ${f.red_flag_reason}` : f.type}</Badge>
+                        <Badge>{f.status.replace("_", " ")}</Badge>
+                        <span className="text-[12.5px] text-ink-500">{[who, fmtDate(f.created_at), f.cohort?.name].filter(Boolean).join(" · ")}</span>
+                      </div>
+                      {long ? (
+                        <details className="group mt-1.5">
+                          <summary className="cursor-pointer list-none text-ink"><span className="whitespace-pre-line">{f.body.slice(0, cut)}</span><span className="group-open:hidden">…</span> <span className="font-semibold text-brand group-open:hidden">Read all</span></summary>
+                          <p className="whitespace-pre-line text-ink">{f.body.slice(cut).replace(/^\n/, "")}</p>
+                        </details>
+                      ) : <p className="mt-1.5 whitespace-pre-line text-ink">{f.body}</p>}
+                    </li>
+                  );
+                })}
               </ul>
             </Card>
           )}
           <FeedbackList d={d} self={false} />
         </div>
         <div className="space-y-6">
+          {(canClear || isSystemOwner) && (
+            <Card>
+              <CardTitle icon="user-check" sub="Nobody teaches without approval. Clearing here records who approved it and why.">Clearance and sign-in</CardTitle>
+              <div className="mb-3 flex flex-wrap items-center gap-2 text-[13.5px]">
+                <Badge tone={p.approval_status === "cleared" ? "green" : p.approval_status === "in_pipeline" ? "amber" : "neutral"}>
+                  {p.approval_status === "cleared" ? "Cleared to teach" : p.approval_status === "in_pipeline" ? "In the approval pipeline" : p.approval_status === "not_approved" ? "Not approved" : "Not cleared yet"}
+                </Badge>
+                {p.erp_instructor_level && <Badge>{p.erp_instructor_level}</Badge>}
+                {p.erp_contractor_status === "Inactive" && <Badge tone="amber">Inactive</Badge>}
+              </div>
+              {canClear && p.approval_status !== "in_pipeline" && (
+                <Disclosure label={p.approval_status === "cleared" ? "Take clearance back" : "Clear to teach"}>
+                  <ActionForm action={personSetApproval} className="space-y-2">
+                    <input type="hidden" name="person" value={id} />
+                    <input type="hidden" name="status" value={p.approval_status === "cleared" ? "not_started" : "cleared"} />
+                    <Field label="Why"><input name="reason" required minLength={5} className={input} placeholder={p.approval_status === "cleared" ? "e.g. Contract ended" : "e.g. Hired as TA and approved in ERPNext"} /></Field>
+                    <Submit size="sm" variant={p.approval_status === "cleared" ? "secondary" : "primary"} icon="check">{p.approval_status === "cleared" ? "Take back" : "Clear to teach"}</Submit>
+                  </ActionForm>
+                </Disclosure>
+              )}
+              {isSystemOwner && (
+                <div className="mt-3 border-t border-line pt-3 text-[13.5px]">
+                  {p.auth_user_id ? <p className="text-ink-600">Signs in as <b>{p.email}</b>.</p> : (
+                    <ActionForm action={personSetEmail} className="space-y-2">
+                      <input type="hidden" name="person" value={id} />
+                      <Field label={p.email ? "Sign-in email (not signed in yet)" : "Sign-in email"}><input name="email" type="email" required defaultValue={p.email ?? ""} className={input} placeholder="name@joincoded.com" /></Field>
+                      <label className="flex items-center gap-2 text-[13px]"><input type="checkbox" name="invite" defaultChecked /> Send the invite email</label>
+                      <p className="text-[12px] text-ink-500">Their first sign-in with this email links to this record, so nothing is duplicated.</p>
+                      <Submit size="sm" variant="secondary">Save email</Submit>
+                    </ActionForm>
+                  )}
+                </div>
+              )}
+            </Card>
+          )}
+          {(focusVisits ?? []).length > 0 && (
+            <Card>
+              <CardTitle icon="eye" sub="Visits that focus on this person, booked and done">Shadowing and visits</CardTitle>
+              <ul className="divide-y divide-line/70 text-[13.5px]">
+                {[...upcomingVisits.slice().reverse(), ...pastVisits].map((x: any) => (
+                  <li key={x.id} className="flex items-center justify-between gap-2 py-2">
+                    <Link href={`/visits/${x.id}`} className="min-w-0 hover:text-brand">
+                      <span className="block truncate font-medium text-navy">{visitLabel(x)} · {x.cohort?.name}</span>
+                      <span className="block text-[12px] text-ink-500">{x.submitted_at ? fmtDate(x.submitted_at) : fmtDateTime(x.scheduled_for)}</span>
+                    </Link>
+                    <Badge tone={x.submitted_at ? "neutral" : !x.assignee_id ? "amber" : "brand"}>{x.submitted_at ? "Done" : STATUS_LABEL[x.status]}</Badge>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
           <Plans d={d} />
           {isOwner && (
             <Card>

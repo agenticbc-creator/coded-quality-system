@@ -11,19 +11,25 @@ export function SetPasswordForm() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    const supabase = createBrowserClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // The link is read here once. Left on, the client would also read it on start-up and use the one-time code
+    // before this code runs, which showed "expired" to people whose link had in fact worked.
+    const supabase = createBrowserClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { detectSessionInUrl: false } });
     (async () => {
       // Invite links carry the session in the URL hash (#access_token=…&refresh_token=…); newer links use ?code=.
       const h = new URLSearchParams(window.location.hash.slice(1));
-      const code = new URLSearchParams(window.location.search).get("code");
+      const qs = new URLSearchParams(window.location.search);
+      const code = qs.get("code");
+      const linkError = h.get("error_description") ?? qs.get("error_description");
       try {
+        if (linkError) throw new Error(linkError.replace(/\+/g, " "));
         if (h.get("access_token") && h.get("refresh_token")) {
           const { error } = await supabase.auth.setSession({ access_token: h.get("access_token")!, refresh_token: h.get("refresh_token")! });
           if (error) throw error;
           window.history.replaceState(null, "", window.location.pathname);
         } else if (code) {
           const { error } = await supabase.auth.exchangeCodeForSession(code);
-          if (error) throw error;
+          if (error) throw new Error("Open the link in the same browser you asked for it from, or ask for a new one.");
+          window.history.replaceState(null, "", window.location.pathname);
         }
         const { data } = await supabase.auth.getUser();
         setReady(data.user ? "ok" : "none");

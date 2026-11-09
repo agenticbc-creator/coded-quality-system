@@ -23,8 +23,8 @@ export function ScheduleForm({ cohorts, people, templates, initial }: { cohorts:
   const eligible = useMemo(() => people.filter((p) => {
     if (kind === "operations") return p.roles.includes("operations");
     if (kind === "education") return p.full_timer && p.roles.some((r) => ["education_officer", "senior_instructor", "education_principal"].includes(r));
-    return true; // shadowing: any authorized team member
-  }), [people, kind]);
+    return !(cl?.staff ?? []).some((x) => x.id === p.id); // shadowing: anyone authorized, but not someone teaching this class
+  }), [people, kind, cl]);
   const busy = (p: Person) => date && p.unavailable.some((u) => date >= u.from && date <= u.to);
 
   return (
@@ -90,7 +90,7 @@ export function ScheduleForm({ cohorts, people, templates, initial }: { cohorts:
       )}
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Field label="Observer" hint={kind === "education" ? "CODED-internal, educational background" : kind === "operations" ? "Operations QAers" : "Any authorized team member"}>
+        <Field label="Observer" hint={kind === "education" ? "CODED-internal, educational background" : kind === "operations" ? "Operations QAers" : "A cleared instructor or staff member who does not teach this class"}>
           <select name="assignee" defaultValue={initial?.assignee_id ?? ""} className={input} required>
             <option value="" disabled>Pick a person</option>
             {eligible.map((p) => <option key={p.id} value={p.id} disabled={!!busy(p)}>{p.name}{busy(p) ? " — unavailable" : ""}</option>)}

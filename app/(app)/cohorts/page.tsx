@@ -9,7 +9,9 @@ import { SEGMENT, fmtDate } from "@/lib/format";
 
 export const metadata = { title: "Cohorts" };
 
-export default async function Cohorts() {
+export default async function Cohorts({ searchParams }: { searchParams: Promise<{ q?: string; program?: string; closed?: string }> }) {
+  const sp = await searchParams;
+  const q = (sp.q ?? "").trim().toLowerCase();
   const me = await getMe();
   const supabase = await db();
   const [{ data: cohorts }, { data: programs }] = await Promise.all([
@@ -18,6 +20,9 @@ export default async function Cohorts() {
   ]);
   const canCreate = has(me, "segment_owner", "operations");
   const groups: [string, string][] = [["live", "Live"], ["setup", "In setup"], ["closed", "Closed"]];
+  const shown = (cohorts ?? []).filter((c: any) => (!q || `${c.name} ${c.program?.name}`.toLowerCase().includes(q)) && (!sp.program || c.program_id === sp.program));
+  const filtered = Boolean(q || sp.program);
+  const CLOSED_LIMIT = 12;
   return (
     <div>
       <PageHeader eyebrow="Setting up a cohort" title="Cohorts"
@@ -39,12 +44,26 @@ export default async function Cohorts() {
             </Card>
           </Disclosure>
         ) : undefined} />
+      <form className="mb-6 flex flex-wrap items-end gap-2" action="/cohorts">
+        <Field label="Search"><input name="q" defaultValue={sp.q ?? ""} placeholder="Cohort or program name" className={`${input} w-64`} /></Field>
+        <Field label="Program"><select name="program" defaultValue={sp.program ?? ""} className={`${input} w-72`}>
+          <option value="">All programs</option>
+          {(programs ?? []).map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select></Field>
+        <button className="h-10 rounded-full bg-navy px-4 text-[13.5px] font-semibold text-white">Filter</button>
+        {filtered && <Link href="/cohorts" className="h-10 px-2 text-[13.5px] font-medium leading-10 text-brand">Clear</Link>}
+        <span className="ml-auto self-center text-[13px] text-ink-500">{shown.length} of {(cohorts ?? []).length} cohorts</span>
+      </form>
+      {shown.length === 0 && <p className="text-[14px] text-ink-500">No cohort matches.</p>}
       {groups.map(([st, label]) => {
-        const list = (cohorts ?? []).filter((c: any) => c.status === st);
-        if (!list.length) return null;
+        const all = shown.filter((c: any) => c.status === st);
+        // Live and set-up cohorts read soonest first; closed ones newest first.
+        if (st !== "closed") all.sort((a: any, b: any) => (a.start_date > b.start_date ? 1 : -1));
+        const list = st === "closed" && !filtered && sp.closed !== "all" ? all.slice(0, CLOSED_LIMIT) : all;
+        if (!all.length) return null;
         return (
           <section key={st} className="mb-8">
-            <h2 className="mb-3 text-[13.5px] font-semibold uppercase tracking-wider text-ink-500">{label} · {list.length}</h2>
+            <h2 className="mb-3 text-[13.5px] font-semibold uppercase tracking-wider text-ink-500">{label} · {all.length}</h2>
             <div className="grid gap-3 md:grid-cols-2">
               {list.map((c: any) => {
                 const overseer = c.cohort_roles.find((r: any) => r.role === "overseer");
@@ -61,13 +80,14 @@ export default async function Cohorts() {
                     <div className="mt-4 grid grid-cols-3 gap-2 text-[12.5px]">
                       <span className="flex items-center gap-1.5 text-ink-600"><Icon name="layers" className="h-3.5 w-3.5" /> {c.classrooms.length} classroom{c.classrooms.length === 1 ? "" : "s"}</span>
                       <span className="flex items-center gap-1.5 text-ink-600"><Icon name="users" className="h-3.5 w-3.5" /> {instructors} instructor{instructors === 1 ? "" : "s"}</span>
-                      <span className="flex items-center gap-1.5 text-ink-600"><Icon name={c.content ? "lock" : "alert"} className="h-3.5 w-3.5" /> {c.content ? `v${c.content_version} locked` : "No content"}</span>
+                      {st === "closed" ? <span /> : <span className="flex items-center gap-1.5 text-ink-600"><Icon name={c.content ? "lock" : "alert"} className="h-3.5 w-3.5" /> {c.content ? `v${c.content_version} locked` : "No content"}</span>}
                     </div>
-                    <div className="mt-2 text-[12.5px] text-ink-500">Overseer: {overseer?.person.full_name ?? <span className="text-tier4">not named</span>}</div>
+                    {st !== "closed" && <div className="mt-2 text-[12.5px] text-ink-500">Overseer: {overseer?.person.full_name ?? <span className="text-tier4">not named</span>}</div>}
                   </Link>
                 );
               })}
             </div>
+            {list.length < all.length && <Link href="/cohorts?closed=all" className="mt-3 inline-block text-[13.5px] font-semibold text-brand">Show all {all.length} closed cohorts</Link>}
           </section>
         );
       })}

@@ -6,7 +6,11 @@ import { SEGMENT, currentPeriod, num } from "@/lib/format";
 
 export const metadata = { title: "People" };
 
-export default async function People() {
+const TEACHING = ["instructor", "ta", "lead_instructor", "senior_instructor", "cctp_candidate"];
+
+export default async function People({ searchParams }: { searchParams: Promise<{ q?: string; show?: string }> }) {
+  const sp = await searchParams;
+  const q = (sp.q ?? "").trim().toLowerCase();
   const me = await getMe();
   const supabase = await db();
   const period = currentPeriod();
@@ -20,8 +24,15 @@ export default async function People() {
   const con = new Map<string, any>();
   (contracts ?? []).forEach((c: any) => con.set(c.person_id, c));
   const plan = new Map((plans ?? []).map((p: any) => [p.person_id, p]));
-  const educators = (people ?? []).filter((p: any) => p.erp_supplier_id);
-  const staff = (people ?? []).filter((p: any) => !p.erp_supplier_id);
+  const match = (p: any) => !q || `${p.full_name} ${p.erp_supplier_id ?? ""} ${p.erp_instructor_level ?? ""}`.toLowerCase().includes(q);
+  const isEducator = (p: any) => Boolean(p.erp_supplier_id) || p.roles.some((r: string) => TEACHING.includes(r));
+  const isStaff = (p: any) => !isEducator(p) && p.roles.length > 0;
+  const inactive = (p: any) => p.erp_contractor_status === "Inactive";
+  const allEducators = (people ?? []).filter(isEducator);
+  const educators = allEducators.filter((p: any) => match(p) && (sp.show === "inactive" ? inactive(p) : sp.show === "all" || !inactive(p)));
+  const staff = (people ?? []).filter((p: any) => isStaff(p) && match(p));
+  const others = (people ?? []).filter((p: any) => !isEducator(p) && !isStaff(p) && match(p));
+  const nInactive = allEducators.filter(inactive).length;
   const hr = has(me, "hr");
 
   return (
@@ -36,8 +47,20 @@ export default async function People() {
           <Stat label="Open plans" value={plan.size} icon="flag" tone={plan.size ? "red" : undefined} />
         </div>
       )}
+      <form action="/people" className="mb-4 flex flex-wrap items-end gap-2">
+        <label className="block"><span className="mb-1 block text-[12.5px] font-semibold text-ink-600">Search</span>
+          <input name="q" defaultValue={sp.q ?? ""} placeholder="Name, level or ERPNext ID" className="h-10 w-72 rounded-xl border border-line bg-white px-3 text-[14px]" /></label>
+        <label className="block"><span className="mb-1 block text-[12.5px] font-semibold text-ink-600">Show</span>
+          <select name="show" defaultValue={sp.show ?? ""} className="h-10 rounded-xl border border-line bg-white px-3 text-[14px]">
+            <option value="">Current educators</option><option value="inactive">Inactive ({nInactive})</option><option value="all">Everyone</option>
+          </select></label>
+        <button className="h-10 rounded-full bg-navy px-4 text-[13.5px] font-semibold text-white">Filter</button>
+        {(q || sp.show) && <Link href="/people" className="h-10 px-2 text-[13.5px] font-medium leading-10 text-brand">Clear</Link>}
+        <span className="ml-auto self-center text-[13px] text-ink-500">{educators.length} educators shown</span>
+      </form>
       <Card pad={false} className="px-5 pb-2 pt-4">
         <Table head={["Educator", "Level", "Segment", "Approval", "This quarter", hr ? "Contract and rate" : "Plan"]}>
+          {educators.length === 0 && <tr><td className={td} colSpan={6}><span className="text-ink-500">No one matches.</span></td></tr>}
           {educators.map((p: any) => {
             const c: any = comp.get(p.id);
             const k = con.get(p.id);
@@ -47,10 +70,10 @@ export default async function People() {
                 <td className={td}>
                   <Link href={`/people/${p.id}`} className="flex items-center gap-2.5">
                     <Avatar name={p.full_name} size={30} />
-                    <span><span className="block font-medium text-navy hover:text-brand">{p.full_name}</span><span className="block tabular-nums text-[11px] text-ink-400">{p.erp_supplier_id}</span></span>
+                    <span><span className="block font-medium text-navy hover:text-brand">{p.full_name}{inactive(p) && <span className="ml-1.5 align-middle text-[11px] font-semibold text-tier3">Inactive</span>}</span><span className="block tabular-nums text-[11px] text-ink-400">{p.erp_supplier_id ?? (p.roles.length ? p.roles.map((r: string) => r === "ta" ? "TA" : r.replace(/_/g, " ")).join(", ") : "")}</span></span>
                   </Link>
                 </td>
-                <td className={td}>{p.erp_instructor_level ?? p.qs_instructor_level ?? p.erp_service_category}</td>
+                <td className={td}>{p.erp_instructor_level ?? p.qs_instructor_level ?? p.erp_service_category ?? <span className="text-ink-400">—</span>}</td>
                 <td className={td}>{p.home_segment ? SEGMENT[p.home_segment] : "—"}</td>
                 <td className={td}><Badge tone={p.approval_status === "cleared" ? "green" : p.approval_status === "in_pipeline" ? "amber" : "neutral"}>{p.approval_status === "cleared" ? "Cleared" : p.approval_status === "in_pipeline" ? "In pipeline" : p.approval_status.replace("_", " ")}</Badge></td>
                 <td className={td}>{c ? <span className="flex items-center gap-2"><span className="tabular-nums font-semibold" style={{ color: tierColor(c.total) }}>{num(c.total)}</span><TierBadge tier={c.tier} provisional={c.provisional} /></span> : <span className="text-ink-400">—</span>}</td>
@@ -63,7 +86,7 @@ export default async function People() {
           })}
         </Table>
       </Card>
-      <h2 className="mb-3 mt-8 text-[15px] font-semibold text-navy">Staff</h2>
+      {staff.length > 0 && <h2 className="mb-3 mt-8 text-[15px] font-semibold text-navy">Staff</h2>}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {staff.map((p: any) => (
           <div key={p.id} className="flex items-center gap-3 rounded-xl border border-line bg-white p-3 shadow-card">
@@ -75,6 +98,20 @@ export default async function People() {
           </div>
         ))}
       </div>
+      {others.length > 0 && (
+        <>
+          <h2 className="mb-1 mt-8 text-[15px] font-semibold text-navy">Candidates and others</h2>
+          <p className="mb-3 text-[13px] text-ink-500">People with no role yet, such as mock-class candidates from the Notion history.</p>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {others.map((p: any) => (
+              <Link key={p.id} href={`/people/${p.id}`} className="flex items-center gap-3 rounded-xl border border-line bg-white p-3 shadow-card hover:border-brand-100">
+                <Avatar name={p.full_name} size={34} />
+                <div className="min-w-0"><div className="truncate text-[14px] font-semibold text-navy">{p.full_name}</div><div className="truncate text-[12.5px] text-ink-500">{inactive(p) ? "Inactive" : "No role"}</div></div>
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }

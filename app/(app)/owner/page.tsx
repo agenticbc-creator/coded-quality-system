@@ -24,12 +24,13 @@ export default async function OwnerHome() {
   ]);
   const mine = (cohorts ?? []).filter((c: any) => segs.includes(c.program.segment_id));
   const live = mine.filter((c: any) => c.status === "live");
-  const setup = mine.filter((c: any) => c.status === "setup");
+  const setup = mine.filter((c: any) => c.status === "setup").sort((a: any, b: any) => (a.start_date > b.start_date ? 1 : -1));
   const myComps = (comps ?? []).filter((c: any) => segs.includes(c.segment_id));
   const pendingRelease = (visits ?? []).filter((v: any) => v.release_status === "pending").length + (notes ?? []).filter((n: any) => n.severity !== "red_flag").length;
   const reds = (notes ?? []).filter((n: any) => n.severity === "red_flag");
   const myApprovals = (steps ?? []).filter((s: any) => s.pipeline?.status === "in_pipeline" && segs.includes(s.pipeline.segment_id));
   const unassigned = (visits ?? []).filter((v: any) => v.status === "planned" && !v.assignee_id && mine.some((c: any) => c.id === v.cohort_id));
+  const SHOW = 8;
   const upcoming = (visits ?? []).filter((v: any) => ["invited", "accepted"].includes(v.status) && new Date(v.scheduled_for) > new Date()).slice(0, 5);
   const tiers = [1, 2, 3, 4].map((t) => myComps.filter((c: any) => c.tier === t).length);
   const lv = await signalLevels();
@@ -129,28 +130,30 @@ export default async function OwnerHome() {
           </Card>
           <Card>
             <CardTitle icon="layers" sub="A cohort starts only when content is locked and every classroom is cleared">Cohorts in setup</CardTitle>
-            {setup.length === 0 ? <Empty title="No cohorts in setup" /> : setup.map((c: any) => (
-              <Link key={c.id} href={`/cohorts/${c.id}`} className="flex items-center justify-between rounded-lg border border-line p-3 hover:bg-canvas">
+            {setup.length === 0 ? <Empty title="No cohorts in setup" /> : setup.slice(0, SHOW).map((c: any) => (
+              <Link key={c.id} href={`/cohorts/${c.id}`} className="mb-2 flex items-center justify-between rounded-lg border border-line p-3 hover:bg-canvas">
                 <span><span className="block text-[14px] font-semibold text-navy">{c.name}</span><span className="text-[12.5px] text-ink-500">Starts {fmtDate(c.start_date)} · {c.classrooms.length} classrooms</span></span>
                 <Badge tone="amber">Setup</Badge>
               </Link>
             ))}
+            {setup.length > SHOW && <Link href="/cohorts" className="text-[13px] font-semibold text-brand">All {setup.length} cohorts in setup →</Link>}
           </Card>
           <Card>
             <CardTitle icon="clipboard" sub="Visits the rotation could not fill or an observer declined">Visits needing an observer</CardTitle>
-            {unassigned.length === 0 ? <Empty title="Every visit has an observer" icon="check" /> : unassigned.map((v: any) => (
+            {unassigned.length === 0 ? <Empty title="Every visit has an observer" icon="check" /> : unassigned.slice(0, SHOW).map((v: any) => (
               <Link key={v.id} href={`/visits/new?visit=${v.id}`} className="mb-2 flex items-center justify-between rounded-lg border border-dashed border-[#F5DDAF] bg-tier3-bg/50 p-3 text-[13.5px]">
-                <span>{visitLabel(v)} · {v.classroom?.name}<span className="block text-[12px] text-ink-500">{fmtDateTime(v.scheduled_for)}</span></span>
+                <span>{visitLabel(v)} · {v.cohort?.name}<span className="block text-[12px] text-ink-500">{fmtDateTime(v.scheduled_for)}</span></span>
                 <span className="text-brand">Assign →</span>
               </Link>
             ))}
+            {unassigned.length > SHOW && <Link href="/visits" className="text-[13px] font-semibold text-brand">All {unassigned.length} visits needing an observer →</Link>}
             {upcoming.length > 0 && (
               <>
                 <div className="mb-1 mt-4 text-[12px] font-semibold uppercase tracking-wider text-ink-500">Upcoming</div>
                 <ul className="divide-y divide-line/70">
                   {upcoming.map((v: any) => (
                     <li key={v.id} className="flex items-center justify-between py-2 text-[13px]">
-                      <span>{visitLabel(v)} · {v.classroom?.name}<span className="block text-ink-500">{v.assignee?.full_name} · {fmtDateTime(v.scheduled_for)}</span></span>
+                      <span>{visitLabel(v)} · {v.cohort?.name}<span className="block text-ink-500">{v.assignee?.full_name} · {fmtDateTime(v.scheduled_for)}</span></span>
                       <Badge tone={v.status === "accepted" ? "green" : "neutral"}>{v.status}</Badge>
                     </li>
                   ))}

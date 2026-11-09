@@ -11,7 +11,7 @@ export default async function Visits() {
   const me = await getMe();
   const supabase = await db();
   const { data } = await supabase.from("visits")
-    .select("*, cohort:cohorts(name), classroom:classrooms(name), assignee:people!visits_assignee_id_fkey(full_name), scores:visit_scores(pct, subject_role)")
+    .select("*, cohort:cohorts(name), classroom:classrooms(name), assignee:people!visits_assignee_id_fkey(full_name), focus_person:people!visits_focus_person_id_fkey(full_name), scores:visit_scores(pct, subject_role)")
     .order("scheduled_for", { ascending: true });
   const all = (data ?? []) as any[];
   const mineOpen = all.filter((v) => v.assignee_id === me.id && !v.submitted_at && v.status !== "cancelled");
@@ -54,9 +54,9 @@ export default async function Visits() {
         <section className="mb-8">
           <h2 className="mb-3 text-[13.5px] font-semibold uppercase tracking-wider text-tier3">Needs an observer · {needs.length}</h2>
           <Card pad={false} className="px-5 pb-1 pt-3">
-            <Table head={["Visit", "Classroom", "When", ""]}>
+            <Table head={["Visit", "Cohort", "Focus", "When", ""]}>
               {needs.map((v) => (
-                <tr key={v.id}><td className={td}>{visitLabel(v)}{v.week_no ? ` · week ${v.week_no}` : ""}</td><td className={td}>{v.cohort?.name} · {v.classroom?.name}</td><td className={td}>{fmtDateTime(v.scheduled_for)}</td>
+                <tr key={v.id}><td className={td}><Link href={`/visits/${v.id}`} className="font-medium text-navy hover:text-brand">{visitLabel(v)}</Link>{v.week_no ? <span className="text-ink-500"> · week {v.week_no}</span> : ""}</td><td className={td}>{v.cohort?.name} · {v.classroom?.name}</td><td className={td}>{v.focus_person?.full_name ?? "Whole class"}</td><td className={td}>{fmtDateTime(v.scheduled_for)}</td>
                   <td className={cx(td, "text-right")}>{canSchedule && <Link href={`/visits/new?visit=${v.id}`} className="font-medium text-brand">Assign →</Link>}</td></tr>
               ))}
             </Table>
@@ -89,7 +89,7 @@ export default async function Visits() {
               {done.map((v) => (
                 <tr key={v.id}>
                   <td className={td}><Link href={`/visits/${v.id}`} className="font-medium text-navy hover:text-brand">{visitLabel(v)}</Link><div className="text-[12px] text-ink-500">{fmtDateTime(v.submitted_at)}</div></td>
-                  <td className={td}>{v.cohort?.name} · {v.classroom?.name}</td><td className={td}>{v.assignee?.full_name}</td>
+                  <td className={td}>{v.cohort?.name} · {v.classroom?.name}</td><td className={td}>{v.assignee?.full_name ?? (/imported from Notion/.test((v.summary ?? "").split("\n")[0]) ? <span className="text-ink-500">From Notion</span> : "—")}</td>
                   <td className={td}><span className="tabular-nums text-[13px]">{(v.scores ?? []).map((s: any) => num(s.pct)).join(" · ") || "—"}</span></td>
                   <td className={td}><Badge tone={v.release_status === "released" ? "green" : v.release_status === "pending" ? "amber" : "neutral"}>{v.release_status === "released" ? "Released" : v.release_status === "pending" ? "Pending" : "Private"}</Badge></td>
                 </tr>
