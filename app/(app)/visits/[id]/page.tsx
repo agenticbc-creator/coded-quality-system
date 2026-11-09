@@ -46,7 +46,7 @@ export default async function VisitPage({ params }: { params: Promise<{ id: stri
 
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader back={{ href: "/visits", label: "Visits" }} eyebrow={`${v.cohort?.name} · ${v.classroom?.name}`}
+      <PageHeader back={{ href: "/visits", label: "Visits" }} eyebrow={[v.cohort?.name, v.classroom?.name].filter(Boolean).join(" · ")}
         title={<>{visitLabel(v)}{v.week_no ? <span className="text-ink-400"> · week {v.week_no}</span> : null}</>}
         sub={<>{fmtDateTime(v.scheduled_for)} · {v.classroom?.room ?? "room tbc"} · focus: {FOCUS[v.focus]?.toLowerCase()}{v.focus_person ? ` (${v.focus_person.full_name})` : ""}</>}
         actions={<Badge tone={v.status === "completed" ? "green" : v.status === "planned" ? "amber" : "brand"}>{STATUS_LABEL[v.status]}</Badge>} />
@@ -92,7 +92,8 @@ export default async function VisitPage({ params }: { params: Promise<{ id: stri
             </div>
             <div>
               <div className="mb-1.5 text-[12px] font-semibold uppercase tracking-wider text-ink-500">Previous One Thing</div>
-              {((ctx as any).previous_one_thing ?? []).length === 0 ? <p className="text-[13.5px] text-ink-500">None yet — full marks on follow-through for a first visit.</p> : (
+              {(ctx as any).peer ? <p className="text-[13.5px] text-ink-500">Shown to the QA team only. You are observing a peer: note what you see in class.</p>
+                : ((ctx as any).previous_one_thing ?? []).length === 0 ? <p className="text-[13.5px] text-ink-500">None yet — full marks on follow-through for a first visit.</p> : (
                 <ul className="space-y-1.5 text-[13.5px]">{(ctx as any).previous_one_thing.map((o: any, i: number) => <li key={i}><b>{team.find((t) => t.id === o.person)?.name ?? "—"}:</b> {o.one_thing}{o.same_cohort === false && <span className="text-ink-500"> · from an earlier cohort</span>}</li>)}</ul>
               )}
               <div className="mb-1.5 mt-4 text-[12px] font-semibold uppercase tracking-wider text-ink-500">Class-level comments</div>
@@ -122,7 +123,9 @@ function Report({ v, links }: { v: any; links: { path: string; kind: string; lab
   return (
     <div className="space-y-5">
       <Card>
-        <CardTitle icon="clipboard" sub={`Filed ${fmtDateTime(v.submitted_at)} · ${v.attendance === "partial" ? "partial attendance" : "full session"}`}
+        <CardTitle icon="clipboard" sub={/imported from Notion/.test((v.summary ?? "").split("\n")[0])
+            ? `Imported from Notion · observed by ${(v.summary ?? "").match(/^Observed by: (.+)$/m)?.[1] ?? "not recorded"}`
+            : `Filed ${fmtDateTime(v.submitted_at)}${v.assignee ? ` by ${v.assignee.full_name}` : ""} · ${v.attendance === "partial" ? "partial attendance" : "full session"}`}
           right={<Badge tone={v.release_status === "released" ? "green" : v.release_status === "pending" ? "amber" : "neutral"}>{v.release_status === "released" ? "Released" : v.release_status === "pending" ? "Waiting for release" : "Kept private"}</Badge>}>
           Report
         </CardTitle>
@@ -138,9 +141,9 @@ function Report({ v, links }: { v: any; links: { path: string; kind: string; lab
           </div>
         )}
         {v.unobserved?.length > 0 && <KV k="Not observed (flagged, not scored)" v={v.unobserved.join(", ")} />}
-        {v.summary && <KV k="Summary" v={<span className="font-normal">{v.summary}</span>} />}
+        {v.summary && <div className="border-b border-line/70 py-2 text-[13.5px]"><div className="mb-1 text-ink-500">Summary</div><p className="whitespace-pre-line text-ink">{v.summary}</p></div>}
         {v.one_thing && <KV k="The One Thing" v={v.one_thing} />}
-        {v.action_points && <KV k="Action points" v={<span className="font-normal">{v.action_points}</span>} />}
+        {v.action_points && <div className="border-b border-line/70 py-2 text-[13.5px]"><div className="mb-1 text-ink-500">Action points</div><p className="whitespace-pre-line text-ink">{v.action_points}</p></div>}
         {v.flags?.length > 0 && <KV k="Flags" v={v.flags.map((f: string) => <Badge key={f} tone="red">{f === "remediation_shadow_tier1" ? "Shadow a Tier 1 instructor" : f}</Badge>)} />}
         {links.length > 0 && <KV k="Evidence" v={<span className="flex flex-wrap gap-2">{links.map((l) => l.url
           ? <a key={l.path} href={l.url} target="_blank" rel="noreferrer" className="font-semibold text-brand">{l.kind === "voice" ? "Voice note" : "Photo"}{l.label ? ` · ${l.label}` : ""}</a>

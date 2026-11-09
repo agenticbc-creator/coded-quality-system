@@ -16,7 +16,7 @@ export default async function CohortPage({ params }: { params: Promise<{ id: str
   const supabase = await db();
   const [{ data: c }, { data: people }, { data: content }, { data: visits }, { data: contracts }, readiness, v, lv] = await Promise.all([
     supabase.from("cohorts").select("*, program:programs(*), content:content_items(id, title, approved_version), backup:people!cohorts_backup_instructor_id_fkey(full_name), classrooms(*, classroom_staff(role, is_lead, person:people(id, full_name, approval_status))), cohort_roles(role, person:people(id, full_name, roles))").eq("id", id).maybeSingle(),
-    supabase.from("people").select("id, full_name, roles, approval_status, erp_supplier_id").order("full_name"),
+    supabase.from("people").select("id, full_name, roles, approval_status, erp_supplier_id, erp_contractor_status").order("full_name"),
     supabase.from("content_items").select("id, title, approved_version, program_id").not("approved_version", "is", null),
     supabase.from("visits").select("*, assignee:people!visits_assignee_id_fkey(full_name)").eq("cohort_id", id).order("scheduled_for"),
     supabase.from("erp_contracts").select("person_id, status"),
@@ -30,11 +30,21 @@ export default async function CohortPage({ params }: { params: Promise<{ id: str
   const canStaff = owner || ops;
   const r = readiness.data as { ok: boolean; blockers: string[]; warnings: string[] };
   const classrooms = (c.classrooms ?? []).sort((a: any, b: any) => (a.name > b.name ? 1 : -1));
-  const cleared = (people ?? []).filter((p: any) => p.approval_status === "cleared" && p.erp_supplier_id);
+  const cleared = (people ?? []).filter((p: any) => p.approval_status === "cleared" && !["Inactive", "Blacklisted", "Duplicate"].includes(p.erp_contractor_status));
   const active = new Set((contracts ?? []).filter((k: any) => k.status === "Active").map((k: any) => k.person_id));
   const overseers = c.cohort_roles.filter((x: any) => x.role === "overseer");
   const seniors = c.cohort_roles.filter((x: any) => x.role === "senior_instructor");
-  const weeks = Array.from(new Set((visits ?? []).map((v: any) => v.week_no).filter(Boolean))).sort((a: any, b: any) => a - b) as number[];
+  // Imported history has no week number: place it by date (week 0 = before Day 1).
+  const weekOf = (v: any): number => {
+    if (v.week_no) return v.week_no;
+    const at = v.scheduled_for ?? v.submitted_at;
+    if (!at) return 1;
+    return Math.max(0, Math.floor((new Date(at).getTime() - new Date(`${c?.start_date}T00:00:00+03:00`).getTime()) / (7 * 864e5)) + 1);
+  };
+  // A visit with no classroom (or one no longer in the cohort) gets its own column instead of being shown under another class.
+  const planCols: { id: string | null; name: string }[] = [...(c?.classrooms ?? []).slice().sort((a: any, b: any) => (a.name > b.name ? 1 : -1)).map((cl: any) => ({ id: cl.id, name: cl.name }))];
+  if ((visits ?? []).some((v: any) => !planCols.some((col) => col.id === v.classroom_id))) planCols.push({ id: null, name: "No classroom" });
+  const weeks = Array.from(new Set((visits ?? []).map(weekOf))).sort((a: any, b: any) => a - b) as number[];
   const signals = c.status === "live" ? await Promise.all(classrooms.map(async (cl: any) => ({ cl, data: (await supabase.rpc("live_signals", { p_classroom: cl.id })).data }))) : [];
   const hid = <input type="hidden" name="cohort" value={id} />;
   const nameOf = (pid: string | null) => (people ?? []).find((p: any) => p.id === pid)?.full_name ?? "";
@@ -115,13 +125,13 @@ export default async function CohortPage({ params }: { params: Promise<{ id: str
                       <ActionForm action={classroomAssign} className="space-y-2">
                         {hid}<input type="hidden" name="classroom" value={cl.id} />
                         <select name="person" className={input} required>
-                          {cleared.map((p: any) => <option key={p.id} value={p.id}>{p.full_name}{active.has(p.id) ? "" : " — no Active contract"}</option>)}
+                          {cleared.map((p: any) => <option key={p.id} value={p.id}>{p.full_name}{(contracts ?? []).length && !active.has(p.id) ? " — no Active contract" : ""}</option>)}
                         </select>
                         <div className="flex items-center gap-3">
                           <select name="role" className={cx(input, "w-auto")}><option value="instructor">Instructor</option><option value="ta">TA</option></select>
                           <label className="flex items-center gap-1.5 text-[13px]"><input type="checkbox" name="lead" /> Lead</label>
                         </div>
-                        <p className="text-[12px] text-ink-500">Only people cleared to teach with an Active ERPNext contract can be assigned.</p>
+                        <p className="text-[12px] text-ink-500">Only people cleared to teach are listed. Not there? Open their record and clear them first.</p>
                         <Submit size="sm">Assign</Submit>
                       </ActionForm>
                     </Disclosure>
@@ -150,22 +160,22 @@ export default async function CohortPage({ params }: { params: Promise<{ id: str
               ) : undefined}>
               QA plan
             </CardTitle>
-            {(visits ?? []).length === 0 ? <Notice tone="amber">No QA plan yet. A program cannot go live without at least one QA visit.</Notice> : (
+            {(visits ?? []).length === 0 ? (c.status === "closed" ? <p className="text-[13.5px] text-ink-500">No visits were recorded for this cohort.</p> : <Notice tone="amber">No QA plan yet. A program cannot go live without at least one QA visit.</Notice>) : (
               <div className="-mx-5 overflow-x-auto px-5">
                 <table className="w-full min-w-[520px] text-[13px]">
-                  <thead><tr className="text-left text-[11px] uppercase tracking-wide text-ink-500"><th className="py-2 pr-3 font-semibold">Week</th>{classrooms.map((cl: any) => <th key={cl.id} className="py-2 pr-3 font-semibold">{cl.name}</th>)}</tr></thead>
+                  <thead><tr className="text-left text-[11px] uppercase tracking-wide text-ink-500"><th className="py-2 pr-3 font-semibold">Week</th>{planCols.map((cl) => <th key={cl.id ?? "none"} className="py-2 pr-3 font-semibold">{cl.name}</th>)}</tr></thead>
                   <tbody>
                     {weeks.map((w) => (
                       <tr key={w} className="border-t border-line/70 align-top">
-                        <td className="py-2 pr-3 tabular-nums text-ink-500">W{w}</td>
-                        {classrooms.map((cl: any) => (
-                          <td key={cl.id} className="py-2 pr-3">
+                        <td className="py-2 pr-3 tabular-nums text-ink-500">{w === 0 ? "Before Day 1" : `W${w}`}</td>
+                        {planCols.map((cl) => (
+                          <td key={cl.id ?? "none"} className="py-2 pr-3">
                             <div className="flex flex-col gap-1">
-                              {(visits ?? []).filter((v: any) => v.week_no === w && v.classroom_id === cl.id).map((v: any) => (
+                              {(visits ?? []).filter((v: any) => weekOf(v) === w && (cl.id ? v.classroom_id === cl.id : !planCols.some((x) => x.id && x.id === v.classroom_id))).map((v: any) => (
                                 <Link key={v.id} href={`/visits/${v.id}`} className={cx("rounded-md px-2 py-1 ring-1 ring-inset hover:brightness-95",
                                   v.status === "completed" ? "bg-tier1-bg text-tier1 ring-[#BFE5D5]" : v.status === "cancelled" ? "bg-canvas text-ink-400 line-through ring-line" : !v.assignee_id ? "bg-tier3-bg text-tier3 ring-[#F5DDAF]" : "bg-brand-50 text-brand ring-brand-100")}>
                                   <span className="font-medium">{v.kind === "shadowing" ? "Shadow" : v.qa_type === "education" ? "Edu QA" : "Ops QA"}{v.mode !== "planned" ? ` · ${v.mode}` : ""}</span>
-                                  <span className="block text-[11px] opacity-80">{v.assignee?.full_name?.split(" ")[0] ?? "needs observer"} · {fmtDay(v.scheduled_for)}</span>
+                                  <span className="block text-[11px] opacity-80">{v.assignee?.full_name?.split(" ")[0] ?? (v.submitted_at ? "from Notion" : "needs observer")} · {fmtDay(v.scheduled_for)}</span>
                                 </Link>
                               ))}
                             </div>

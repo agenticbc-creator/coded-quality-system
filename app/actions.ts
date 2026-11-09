@@ -272,6 +272,21 @@ export async function personRoles(_: ActionResult, f: FormData) {
   return call("person_set_roles", { p_person: s(f, "person"), p_roles: f.getAll("roles").map(String), p_owned: f.getAll("owned").map(String), p_full_timer: s(f, "full_timer") === "on" },
     ["/admin"], "Access updated and logged.");
 }
+export async function personSetApproval(_: ActionResult, f: FormData) {
+  const status = s(f, "status");
+  return call("person_set_approval", { p_person: s(f, "person"), p_status: status, p_reason: s(f, "reason") },
+    ["/people", "/people/[id]", "/cohorts/[id]"], status === "cleared" ? "Cleared to teach and logged." : "Clearance taken back and logged.");
+}
+/** Gives an imported record its sign-in email, then sends the invite when the service key is set. */
+export async function personSetEmail(_: ActionResult, f: FormData): Promise<ActionResult> {
+  const email = (s(f, "email") ?? "").trim().toLowerCase();
+  const res = await call("person_set_email", { p_person: s(f, "person"), p_email: email }, ["/people/[id]", "/admin"], "Email saved.");
+  if (!res.ok || f.get("invite") !== "on") return res;
+  if (!hasServiceKey()) return { ok: true, message: "Email saved. The invite email is off until SUPABASE_SERVICE_ROLE_KEY is set in Vercel; send it from Supabase (Authentication > Users > Invite user) for now. Their first sign-in links to this record." };
+  const base = (process.env.APP_URL || "https://coded-quality-system.vercel.app").replace(/\/$/, "");
+  const { error: inv } = await adminDb().auth.admin.inviteUserByEmail(email, { redirectTo: `${base}/login/set-password` });
+  return inv ? { ok: true, message: `Email saved, but the invite failed: ${inv.message}` } : { ok: true, message: "Email saved and the invite is on its way." };
+}
 export async function notificationsRead(_: ActionResult, _f: FormData) {
   return call("notifications_read", { p_ids: null }, ["/notifications"], "All caught up.");
 }
