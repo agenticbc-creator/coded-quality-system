@@ -76,6 +76,12 @@ pg_cron at 06:00 Kuwait time. The release queue switches to one block per person
 
 ## Going live (no sample data)
 
+**Live database (9 Nov 2026):** Supabase project `excvjpgpyriqcjnvdjuh` ("coded-quality", organization
+agenticbc-creator's Org, eu-central-1), built from migrations 0001–0012 with no seed data. The app's defaults in
+`lib/config.ts` point at it. The earlier demo project `dceyqaobmasqibclchdg` (codedadmin's Org) is no longer used.
+Demo mode is off unless `DEMO_MODE=on` and `DEMO_PASSWORD` are both set in Vercel.
+
+
 Do these in order. Steps 1, 5, 6 and 7 are settings only the project owner can change; the SQL steps run in the
 Supabase SQL editor of project `dceyqaobmasqibclchdg`.
 
