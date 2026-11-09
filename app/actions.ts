@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { db } from "@/lib/supabase";
 import { adminDb, hasServiceKey } from "@/lib/supabase-admin";
+import { isDemo } from "@/lib/config";
 import type { ActionResult } from "@/components/forms";
 
 const s = (f: FormData, k: string) => {
@@ -40,6 +41,7 @@ export async function signIn(_: ActionResult, f: FormData): Promise<ActionResult
   const supabase = await db();
   const persona = s(f, "persona");
   const email = persona ? `${persona}@demo.coded.test` : s(f, "email");
+  if (persona && !isDemo()) return { ok: false, error: "Sample sign-in is switched off." };
   const password = persona ? process.env.DEMO_PASSWORD : s(f, "password");
   if (!email || !password) return { ok: false, error: persona ? "Demo sign-in is turned off on this deployment." : "Enter your email and password." };
   const { error } = await supabase.auth.signInWithPassword({ email, password });
