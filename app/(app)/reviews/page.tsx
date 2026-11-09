@@ -33,7 +33,7 @@ export default async function Reviews() {
               <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-3">
                   <Avatar name={t.subject_name} />
-                  <div><div className="text-[15px] font-semibold text-navy">{t.subject_name}</div><div className="text-[12px] text-ink-500">{ROLE[t.subject_role]} · {t.cohort_name}</div></div>
+                  <div><div className="text-[15px] font-semibold text-navy">{t.subject_name}</div><div className="text-[12.5px] text-ink-500">{ROLE[t.subject_role]} · {t.cohort_name}</div></div>
                 </div>
                 <Badge tone="amber">Closes {fmtDate(t.closes)}</Badge>
               </div>
@@ -49,7 +49,7 @@ export default async function Reviews() {
           ))}
         </div>
       )}
-      {done.length > 0 && <p className="mt-6 text-[12.5px] text-ink-500">Already reviewed: {done.map((d) => d.subject_name).join(", ")}.</p>}
+      {done.length > 0 && <p className="mt-6 text-[13px] text-ink-500">Already reviewed: {done.map((d) => d.subject_name).join(", ")}.</p>}
     </div>
   );
 }

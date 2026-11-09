@@ -5,8 +5,8 @@ import { ScheduleForm } from "@/components/schedule-form";
 
 export const metadata = { title: "Schedule a visit" };
 
-export default async function NewVisit({ searchParams }: { searchParams: Promise<{ visit?: string; cohort?: string }> }) {
-  const { visit, cohort } = await searchParams;
+export default async function NewVisit({ searchParams }: { searchParams: Promise<{ visit?: string; cohort?: string; focus?: string }> }) {
+  const { visit, cohort, focus } = await searchParams;
   await getMe();
   const supabase = await db();
   const [{ data: cohorts }, { data: people }, { data: templates }, { data: avail }, existing] = await Promise.all([
@@ -22,11 +22,11 @@ export default async function NewVisit({ searchParams }: { searchParams: Promise
     ...v,
     date: v.scheduled_for ? new Date(new Date(v.scheduled_for).getTime() + 3 * 36e5).toISOString().slice(0, 10) : "",
     time: v.scheduled_for ? new Date(new Date(v.scheduled_for).getTime() + 3 * 36e5).toISOString().slice(11, 16) : "09:30",
-  } : cohort ? { cohort_id: cohort } : undefined;
+  } : cohort ? { cohort_id: cohort, ...(focus ? { focus } : {}) } : undefined;
 
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader back={{ href: "/visits", label: "Visits" }} eyebrow="D3 · schedule a visit" title={v ? "Assign or reschedule a visit" : "Schedule a visit"}
+      <PageHeader back={{ href: "/visits", label: "Visits" }} eyebrow="Schedule a visit" title={v ? "Assign or reschedule a visit" : "Schedule a visit"}
         sub="Pick the observer, the type, the focus and the template. Availability comes from ERPNext." />
       <Card>
         <ScheduleForm

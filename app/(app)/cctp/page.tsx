@@ -21,7 +21,7 @@ function Ladder({ lessons }: { lessons: number }) {
   return (
     <div className="relative">
       <div className="absolute left-0 right-0 top-[15px] h-[3px] bg-white/15" />
-      <div className="absolute left-0 top-[15px] h-[3px] bg-[#7FB0EE] transition-all" style={{ width: `${Math.min(100, lessons)}%` }} />
+      <div className="absolute left-0 top-[15px] h-[3px] bg-[#8DA4FF] transition-all" style={{ width: `${Math.min(100, lessons)}%` }} />
       <div className="relative flex justify-between">
         {RANKS.map((r) => {
           const done = lessons >= r.at;
@@ -59,7 +59,7 @@ export default async function CCTP() {
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="H · CODED Certified Trainer Program" title="CCTP"
+      <PageHeader eyebrow="CODED Certified Trainer Program" title="CCTP"
         sub="100 lessons on the Trainer Learning Path, six ranks, then one live mock class scored on the 100-point rubric. 90+ is CCT, 80–89 is CCTA, anything else is Not Yet with a retake." />
 
       {mine || me.cctp_cert ? (
@@ -68,12 +68,18 @@ export default async function CCTP() {
             <div>
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">Your path</div>
               <div className="mt-2 text-[34px] font-extrabold leading-none tracking-tight">{me.cctp_cert ? `Certified ${me.cctp_cert}` : me.cctp_rank ?? "Newcomer"}</div>
-              <div className="mt-2 text-[14px] text-white/70">{mine ? <><span className="font-semibold text-white">{mine.lessons_completed}</span> of 100 lessons · {STATUS[mine.status]?.[0]}</> : "Certified trainer"}</div>
+              <div className="mt-2 text-[14.5px] text-white/70">{mine ? <><span className="font-semibold text-white">{mine.lessons_completed}</span> of 100 lessons · {STATUS[mine.status]?.[0]}</> : "Certified trainer"}</div>
+              {mine && !me.cctp_cert && (() => {
+                const next = RANKS.find((r) => r.at > mine.lessons_completed);
+                const step = next ? `Next: ${next.name} at ${next.at} lessons, ${next.at - mine.lessons_completed} to go.`
+                  : mine.status === "booked" ? "Next: your live mock class." : mine.status === "not_yet" ? "Next: book your retake below." : "Next: book your live mock class below.";
+                return <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-[13px] font-semibold text-white ring-1 ring-white/15"><Icon name="arrow" className="h-3.5 w-3.5 text-[#8DA4FF]" />{step}</div>;
+              })()}
             </div>
             {me.cctp_cert && (
               <div className="frame-corners border border-white/25 px-5 py-4 text-center">
-                <Icon name="award" className="mx-auto h-7 w-7 text-[#7FB0EE]" />
-                <div className="mt-1 text-[12px] font-semibold uppercase tracking-[0.16em]">CODED Certified</div>
+                <Icon name="award" className="mx-auto h-7 w-7 text-[#8DA4FF]" />
+                <div className="mt-1 text-[12.5px] font-semibold uppercase tracking-[0.16em]">CODED Certified</div>
                 <div className="text-[22px] font-extrabold">{me.cctp_cert === "CCT" ? "Trainer" : "Trainer Associate"}</div>
               </div>
             )}
@@ -82,15 +88,15 @@ export default async function CCTP() {
           {mine && mine.lessons_completed >= 100 && !["booked", "certified"].includes(mine.status) && (
             <ActionForm action={cctpBook} className="mt-8 flex flex-wrap items-end gap-3 rounded-xl bg-white/[0.07] p-4 ring-1 ring-white/15">
               <div className="min-w-[220px] flex-1">
-                <span className="mb-1.5 block text-[12.5px] font-medium text-white/80">{mine.status === "not_yet" ? "Book your retake" : "You have completed the path. Book your live mock class"}</span>
+                <span className="mb-1.5 block text-[13px] font-medium text-white/80">{mine.status === "not_yet" ? "Book your retake" : "You have completed the path. Book your live mock class"}</span>
                 <input type="datetime-local" name="when" required className={cx(input, "bg-white")} />
               </div>
               <Submit icon="calendar">Book mock class</Submit>
             </ActionForm>
           )}
           {myBookings.filter((b) => b.status === "booked").map((b) => (
-            <div key={b.id} className="mt-6 flex items-center gap-3 rounded-xl bg-white/[0.07] px-4 py-3 text-[13.5px] ring-1 ring-white/15">
-              <Icon name="calendar" className="h-4 w-4 text-[#7FB0EE]" /> Mock class booked for <b>{fmtDateTime(b.scheduled_for)}</b>. The Education team will confirm the room.
+            <div key={b.id} className="mt-6 flex items-center gap-3 rounded-xl bg-white/[0.07] px-4 py-3 text-[14px] ring-1 ring-white/15">
+              <Icon name="calendar" className="h-4 w-4 text-[#8DA4FF]" /> Mock class booked for <b>{fmtDateTime(b.scheduled_for)}</b>. The Education team will confirm the room.
             </div>
           ))}
         </section>
@@ -104,8 +110,8 @@ export default async function CCTP() {
           <div className="space-y-3">
             {(myResults as any[]).filter((r) => r.context === "cctp").map((r) => (
               <div key={r.id} className="rounded-lg border border-line p-4">
-                <div className="flex items-center justify-between"><span className="text-[13px] text-ink-500">{fmtDate(r.created_at)}</span><Badge tone={r.result === "not_yet" ? "red" : "green"}>{r.total}/100 · {r.result === "not_yet" ? "Not Yet" : r.result}</Badge></div>
-                <p className="mt-2 text-[13.5px] leading-relaxed">{r.feedback}</p>
+                <div className="flex items-center justify-between"><span className="text-[13.5px] text-ink-500">{fmtDate(r.created_at)}</span><Badge tone={r.result === "not_yet" ? "red" : "green"}>{r.total}/100 · {r.result === "not_yet" ? "Not Yet" : r.result}</Badge></div>
+                <p className="mt-2 text-[14px] leading-relaxed">{r.feedback}</p>
               </div>
             ))}
           </div>
@@ -128,7 +134,7 @@ export default async function CCTP() {
                 {open.map((b) => (
                   <div key={b.id} className="rounded-xl border border-line">
                     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-zebra px-4 py-3">
-                      <div className="flex items-center gap-3"><Avatar name={b.person.full_name} /><div><div className="text-[14px] font-semibold text-navy">{b.person.full_name}</div><div className="text-[12px] text-ink-500">{fmtDateTime(b.scheduled_for)}</div></div></div>
+                      <div className="flex items-center gap-3"><Avatar name={b.person.full_name} /><div><div className="text-[14.5px] font-semibold text-navy">{b.person.full_name}</div><div className="text-[12.5px] text-ink-500">{fmtDateTime(b.scheduled_for)}</div></div></div>
                       <Badge tone="navy">Booked</Badge>
                     </div>
                     <div className="p-4">
@@ -143,10 +149,10 @@ export default async function CCTP() {
                             ))}
                           </div>
                           <div>
-                            <span className="mb-1.5 block text-[12.5px] font-medium text-ink-600">Critical failures</span>
+                            <span className="mb-1.5 block text-[13px] font-medium text-ink-600">Critical failures</span>
                             <div className="grid gap-2 sm:grid-cols-2">
                               {rubric.critical.map((c) => (
-                                <label key={c.key} className="flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-[13px]"><input type="checkbox" name="critical" value={c.key} className="accent-[#B42E28]" /> {c.label}</label>
+                                <label key={c.key} className="flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-[13.5px]"><input type="checkbox" name="critical" value={c.key} className="accent-[#B42E28]" /> {c.label}</label>
                               ))}
                             </div>
                           </div>
@@ -182,7 +188,7 @@ export default async function CCTP() {
                     <td className={td}><Link href={e.person.erp_supplier_id ? `/people/${e.person_id}` : "#"} className="flex items-center gap-2.5 font-medium text-navy hover:text-brand"><Avatar name={e.person.full_name} size={28} />{e.person.full_name}</Link></td>
                     <td className={cx(td, "capitalize text-ink-500")}>{e.source}</td>
                     <td className={td}>
-                      <div className="flex items-center gap-2"><div className="h-1.5 w-28 overflow-hidden rounded-full bg-canvas"><div className="h-full bg-brand" style={{ width: `${e.lessons_completed}%` }} /></div><span className="tabular-nums text-[12.5px]">{e.lessons_completed}</span></div>
+                      <div className="flex items-center gap-2"><div className="h-1.5 w-28 overflow-hidden rounded-full bg-canvas"><div className="h-full bg-brand" style={{ width: `${e.lessons_completed}%` }} /></div><span className="tabular-nums text-[13px]">{e.lessons_completed}</span></div>
                     </td>
                     <td className={td}>{e.person.cctp_cert ? <Badge tone="green"><Icon name="award" className="h-3 w-3" />{e.person.cctp_cert}</Badge> : e.person.cctp_rank ?? "Newcomer"}</td>
                     <td className={td}><Badge tone={STATUS[e.status]?.[1]}>{STATUS[e.status]?.[0]}</Badge></td>
@@ -208,7 +214,7 @@ export default async function CCTP() {
                 <tr key={b.id}>
                   <td className={td}>{fmtDate(b.scheduled_for)}</td>
                   <td className={cx(td, "font-medium text-navy")}>{b.person.full_name}</td>
-                  <td className={td}><Badge tone={b.result?.result === "not_yet" ? "red" : "green"}>{b.result?.total}/100 · {b.result?.result === "not_yet" ? "Not Yet" : b.result?.result}</Badge>{b.result?.critical_failures?.length ? <span className="ml-2 text-[12px] text-tier4">critical: {b.result.critical_failures.join(", ").replace(/_/g, " ")}</span> : null}</td>
+                  <td className={td}><Badge tone={b.result?.result === "not_yet" ? "red" : "green"}>{b.result?.total}/100 · {b.result?.result === "not_yet" ? "Not Yet" : b.result?.result}</Badge>{b.result?.critical_failures?.length ? <span className="ml-2 text-[12.5px] text-tier4">critical: {b.result.critical_failures.join(", ").replace(/_/g, " ")}</span> : null}</td>
                   <td className={td}>{b.recording_url ? <a href={b.recording_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-brand hover:underline"><Icon name="play" className="h-3.5 w-3.5" /> Watch</a> : <span className="text-ink-400">—</span>}</td>
                 </tr>
               ))}
@@ -221,10 +227,10 @@ export default async function CCTP() {
         <CardTitle icon="target" sub="From the CCTP program page. Critical failures override the total.">The mock-class rubric</CardTitle>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {rubric.items.map((it) => (
-            <div key={it.key} className="flex items-center justify-between rounded-lg border border-line px-3 py-2.5 text-[13px]"><span>{it.label}</span><span className="font-bold tabular-nums text-navy">{it.max}</span></div>
+            <div key={it.key} className="flex items-center justify-between rounded-lg border border-line px-3 py-2.5 text-[13.5px]"><span>{it.label}</span><span className="font-bold tabular-nums text-navy">{it.max}</span></div>
           ))}
         </div>
-        <div className="mt-3 flex flex-wrap gap-2 text-[12px]">
+        <div className="mt-3 flex flex-wrap gap-2 text-[12.5px]">
           {rubric.critical.map((c) => <Badge key={c.key} tone="red"><Icon name="alert" className="h-3 w-3" />{c.label}</Badge>)}
         </div>
       </Card>

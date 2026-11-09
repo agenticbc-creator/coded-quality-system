@@ -30,23 +30,23 @@ export default async function Onboarding() {
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="E7 · before a first visit" title="QAer onboarding"
-        sub="Walk through each template you will use, then mark it complete. The QA plan and scheduling show who is onboarded so first visits go to people who know the rubric." />
+      <PageHeader eyebrow="Before a first visit" title="QAer onboarding"
+        sub="Walk through each template you will use, then mark it complete. From migration 0010 you cannot accept your first visit of a kind until you have finished onboarding on its template." />
 
       <section className="blueprint rounded-2xl p-6 text-white md:p-8">
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div>
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">Your onboarding</div>
             <div className="mt-2 text-[40px] font-extrabold leading-none tabular-nums">{progress}%</div>
-            <div className="mt-1 text-[13.5px] text-white/70">{relevant.filter((t) => mine.has(t.key)).length} of {relevant.length} templates complete</div>
+            <div className="mt-1 text-[14px] text-white/70">{relevant.filter((t) => mine.has(t.key)).length} of {relevant.length} templates complete</div>
           </div>
-          <div className="h-2 w-full max-w-md overflow-hidden rounded-full bg-white/15"><div className="h-full bg-[#7FB0EE]" style={{ width: `${progress}%` }} /></div>
+          <div className="h-2 w-full max-w-md overflow-hidden rounded-full bg-white/15"><div className="h-full bg-[#8DA4FF]" style={{ width: `${progress}%` }} /></div>
         </div>
         <div className="mt-8 grid gap-3 md:grid-cols-4">
           {STEPS.map((s, i) => (
             <div key={s.t} className="rounded-xl bg-white/[0.06] p-4 ring-1 ring-white/10">
-              <div className="flex items-center gap-2 text-[13px] font-semibold"><span className="grid h-6 w-6 place-items-center bg-white text-[11px] font-bold text-navy">{i + 1}</span>{s.t}</div>
-              <p className="mt-2 text-[12.5px] leading-relaxed text-white/70">{s.d}</p>
+              <div className="flex items-center gap-2 text-[13.5px] font-semibold"><span className="grid h-6 w-6 place-items-center bg-white text-[11px] font-bold text-navy">{i + 1}</span>{s.t}</div>
+              <p className="mt-2 text-[13px] leading-relaxed text-white/70">{s.d}</p>
             </div>
           ))}
         </div>
@@ -61,25 +61,25 @@ export default async function Onboarding() {
               <div className="mb-3 flex items-start justify-between gap-3">
                 <div>
                   <div className="flex flex-wrap items-center gap-2"><h2 className="text-[15px] font-semibold text-navy">{t.name}</h2><StatusBadge status={t.status} />{t.segment_id && <Badge tone="brand">{t.segment_id}</Badge>}</div>
-                  <div className="mt-0.5 text-[12.5px] text-ink-500">Scores: {roles.join(", ")} · v{t.version}</div>
+                  <div className="mt-0.5 text-[13px] text-ink-500">Scores: {roles.join(", ")} · v{t.version}</div>
                 </div>
                 {completed ? <Badge tone="green"><Icon name="check" className="h-3 w-3" />Done {fmtDate(completed)}</Badge> : <Badge tone="amber">To do</Badge>}
               </div>
               <details className="group rounded-lg border border-line">
-                <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-[13px] font-medium text-navy">Walk through the rubric <Icon name="arrow" className="h-3.5 w-3.5 transition group-open:rotate-90" /></summary>
+                <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-[13.5px] font-medium text-navy">Walk through the rubric <Icon name="arrow" className="h-3.5 w-3.5 transition group-open:rotate-90" /></summary>
                 <div className="space-y-3 border-t border-line p-3">
                   {roles.map((r) => (
                     <div key={r}>
-                      <div className="text-[11.5px] font-semibold uppercase tracking-wide text-brand">{t.rubric[r].label ?? r}</div>
+                      <div className="text-[12px] font-semibold uppercase tracking-wide text-brand">{t.rubric[r].label ?? r}</div>
                       {(t.rubric[r].sections ?? []).map((sec: any) => (
                         <div key={sec.key} className="mt-1.5">
-                          <div className="text-[12.5px] font-semibold text-ink-600">{sec.label}</div>
+                          <div className="text-[13px] font-semibold text-ink-600">{sec.label}</div>
                           <ul className="mt-1 space-y-1">
-                            {sec.items.map((it: any) => <li key={it.key} className="flex justify-between gap-3 text-[12.5px]"><span>{it.label}</span><span className="tabular-nums text-ink-500">{it.max ?? "✓"}</span></li>)}
+                            {sec.items.map((it: any) => <li key={it.key} className="flex justify-between gap-3 text-[13px]"><span>{it.label}</span><span className="tabular-nums text-ink-500">{it.max ?? "✓"}</span></li>)}
                           </ul>
                         </div>
                       ))}
-                      {(t.rubric[r].items ?? []).map((it: any) => <div key={it.key} className="mt-1 text-[12.5px]">• {it.label}</div>)}
+                      {(t.rubric[r].items ?? []).map((it: any) => <div key={it.key} className="mt-1 text-[13px]">• {it.label}</div>)}
                     </div>
                   ))}
                 </div>
@@ -87,7 +87,7 @@ export default async function Onboarding() {
               {!completed && (
                 <ActionForm action={onboardingComplete} className="mt-3">
                   <input type="hidden" name="key" value={t.key} />
-                  <label className="mb-3 flex items-start gap-2 text-[12.5px] text-ink-600"><input type="checkbox" required className="mt-0.5 accent-[#14243F]" /> I have read every item and know how to mark areas I cannot observe.</label>
+                  <label className="mb-3 flex items-start gap-2 text-[13px] text-ink-600"><input type="checkbox" required className="mt-0.5 accent-[#14243F]" /> I have read every item and know how to mark areas I cannot observe.</label>
                   <Submit size="sm" icon="check">Mark complete</Submit>
                 </ActionForm>
               )}
@@ -100,7 +100,7 @@ export default async function Onboarding() {
         <Card>
           <CardTitle icon="users" sub="Who has completed which template.">Team readiness</CardTitle>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-[12.5px]">
+            <table className="w-full min-w-[640px] text-[13px]">
               <thead><tr className="border-b border-line text-left text-ink-500"><th className="py-2 pr-3 font-semibold">QAer</th>{relevant.map((t) => <th key={t.key} className="px-2 py-2 font-semibold">{t.name.replace(/^Education QA — |^Operations QA — /, "")}</th>)}</tr></thead>
               <tbody className="divide-y divide-line">
                 {((people ?? []) as any[]).map((p) => {

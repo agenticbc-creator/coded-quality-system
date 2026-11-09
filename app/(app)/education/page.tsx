@@ -3,12 +3,14 @@ import { getMe, has } from "@/lib/session";
 import { db } from "@/lib/supabase";
 import { Avatar, Badge, Card, CardTitle, Empty, PageHeader, Stat, cx } from "@/components/ui";
 import { Icon } from "@/components/icons";
-import { fmtDateTime, STATUS_LABEL, ago, visitLabel } from "@/lib/format";
+import { fmtDateTime, STATUS_LABEL, ago, visitLabel, lateLabel } from "@/lib/format";
 
 export const metadata = { title: "Education home" };
 
 export default async function EducationHome() {
   const me = await getMe();
+  // Only these roles can book education visits (visit_schedule); the button is hidden for everyone else.
+  const canBook = has(me, "segment_owner", "education_principal", "senior_instructor", "education_coordinator");
   const supabase = await db();
   const now = new Date().toISOString();
   const [myVisits, pendingContent, stages, cctp, onboarding, templates, pipes, live, recentScores] = await Promise.all([
@@ -37,14 +39,14 @@ export default async function EducationHome() {
       <section className="blueprint overflow-hidden rounded-2xl p-6 text-white md:p-8">
         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">Education · {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "Asia/Kuwait" })}</div>
         <h1 className="mt-2 text-[32px] font-extrabold tracking-tight">Good to see you, {firstName}.</h1>
-        <p className="mt-1 max-w-2xl text-[14px] text-white/70">
+        <p className="mt-1 max-w-2xl text-[14.5px] text-white/70">
           {today.length ? `You have ${today.length} visit${today.length > 1 ? "s" : ""} today.` : "No visits on your calendar today."}{" "}
-          {has(me, "education_principal") && (pendingContent.data?.length ?? 0) > 0 ? `${pendingContent.data!.length} content version(s) are waiting for your approval.` : ""}
+          {has(me, "education_principal") && (pendingContent.data?.length ?? 0) > 0 ? `${pendingContent.data!.length} content ${pendingContent.data!.length === 1 ? "version is" : "versions are"} waiting for your approval.` : ""}
         </p>
         <div className="mt-6 flex flex-wrap gap-2">
-          <Link href="/visits/new" className="inline-flex h-9 items-center gap-1.5 bg-white px-3.5 text-[13px] font-semibold text-navy hover:bg-brand-50"><Icon name="plus" className="h-4 w-4" /> Schedule a visit</Link>
-          <Link href="/feedback/new" className="inline-flex h-9 items-center gap-1.5 px-3.5 text-[13px] font-semibold text-white ring-1 ring-white/30 hover:bg-white/10"><Icon name="pen" className="h-4 w-4" /> Log feedback</Link>
-          <Link href="/approvals" className="inline-flex h-9 items-center gap-1.5 px-3.5 text-[13px] font-semibold text-white ring-1 ring-white/30 hover:bg-white/10"><Icon name="inbox" className="h-4 w-4" /> Waiting on me</Link>
+          {canBook && <Link href="/visits/new" className="inline-flex h-10 items-center gap-1.5 rounded-full bg-white px-4 text-[13.5px] font-semibold text-navy hover:bg-brand-50"><Icon name="plus" className="h-4 w-4" /> Schedule a visit</Link>}
+          <Link href="/feedback/new" className="inline-flex h-10 items-center gap-1.5 rounded-full px-4 text-[13.5px] font-semibold text-white ring-1 ring-white/30 hover:bg-white/10"><Icon name="pen" className="h-4 w-4" /> Log feedback</Link>
+          <Link href="/approvals" className="inline-flex h-10 items-center gap-1.5 rounded-full px-4 text-[13.5px] font-semibold text-white ring-1 ring-white/30 hover:bg-white/10"><Icon name="inbox" className="h-4 w-4" /> Waiting on me</Link>
         </div>
       </section>
 
@@ -58,7 +60,7 @@ export default async function EducationHome() {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
         <div className="space-y-6">
           <Card>
-            <CardTitle icon="calendar" sub="Invites to answer and visits to run." right={<Link href="/calendar?mine=1" className="text-[12.5px] font-medium text-brand hover:underline">Calendar</Link>}>My visits</CardTitle>
+            <CardTitle icon="calendar" sub="Invites to answer and visits to run." right={<Link href="/calendar?mine=1" className="text-[13px] font-medium text-brand hover:underline">Calendar</Link>}>My visits</CardTitle>
             {upcoming.length === 0 ? <Empty title="No open visits" /> : (
               <ul className="divide-y divide-line">
                 {upcoming.slice(0, 6).map((v) => (
@@ -66,10 +68,10 @@ export default async function EducationHome() {
                     <Link href={`/visits/${v.id}`} className="flex items-center justify-between gap-3 py-3 hover:text-brand">
                       <span className="flex items-center gap-3">
                         <span className="grid w-12 shrink-0 place-items-center border-2 border-navy py-1 text-center leading-none">
-                          <span className="text-[9.5px] font-bold uppercase text-brand">{new Date(v.scheduled_for).toLocaleDateString("en-GB", { weekday: "short", timeZone: "Asia/Kuwait" })}</span>
+                          <span className="text-[11px] font-bold uppercase text-brand">{new Date(v.scheduled_for).toLocaleDateString("en-GB", { weekday: "short", timeZone: "Asia/Kuwait" })}</span>
                           <span className="text-[17px] font-extrabold text-navy">{new Date(v.scheduled_for).toLocaleDateString("en-GB", { day: "numeric", timeZone: "Asia/Kuwait" })}</span>
                         </span>
-                        <span><span className="block text-[13.5px] font-semibold text-navy">{visitLabel(v)}</span><span className="block text-[12px] text-ink-500">{v.cohort?.name} · {v.classroom?.name} · {fmtDateTime(v.scheduled_for)}</span></span>
+                        <span><span className="block text-[14px] font-semibold text-navy">{visitLabel(v)}</span><span className="block text-[12.5px] text-ink-500">{v.cohort?.name} · {v.classroom?.name} · {fmtDateTime(v.scheduled_for)}</span></span>
                       </span>
                       <Badge tone={v.status === "invited" ? "amber" : "green"}>{v.status === "invited" ? "Respond" : STATUS_LABEL[v.status]}</Badge>
                     </Link>
@@ -87,9 +89,9 @@ export default async function EducationHome() {
               const pct = qa.length ? Math.round((done / qa.length) * 100) : 0;
               return (
                 <Link key={c.id} href={`/cohorts/${c.id}`} className="block rounded-lg border border-line p-3 transition hover:border-navy">
-                  <div className="flex items-center justify-between text-[13.5px]"><b className="text-navy">{c.name}</b><span className="tabular-nums text-ink-500">{done}/{qa.length} QA visits</span></div>
+                  <div className="flex items-center justify-between text-[14px]"><b className="text-navy">{c.name}</b><span className="tabular-nums text-ink-500">{done}/{qa.length} QA visits</span></div>
                   <div className="mt-2 h-2 overflow-hidden bg-canvas"><div className="h-full bg-navy" style={{ width: `${pct}%` }} /></div>
-                  <div className="mt-1.5 text-[12px] text-ink-500">{c.classrooms.length} classrooms · {(c.visits as any[]).filter((v) => v.kind === "shadowing" && v.submitted_at).length} shadowing visits filed</div>
+                  <div className="mt-1.5 text-[12.5px] text-ink-500">{c.classrooms.length} classrooms · {(c.visits as any[]).filter((v) => v.kind === "shadowing" && v.submitted_at).length} shadowing visits filed</div>
                 </Link>
               );
             })}
@@ -102,32 +104,32 @@ export default async function EducationHome() {
             <CardTitle icon="inbox" sub="Steps owned by Education.">Approvals with Education</CardTitle>
             <ul className="space-y-2">
               {has(me, "education_principal") && ((pendingContent.data ?? []) as any[]).map((v) => (
-                <li key={v.id}><Link href={`/approvals/content/${v.content.id}`} className="flex items-center justify-between rounded-lg border border-line px-3 py-2 text-[13px] hover:border-navy"><span><Icon name="book" className="mr-1.5 inline h-3.5 w-3.5 text-brand" />{v.content.title} · v{v.version}</span><span className="text-[11.5px] text-ink-500">{ago(v.submitted_at)}</span></Link></li>
+                <li key={v.id}><Link href={`/approvals/content/${v.content.id}`} className="flex items-center justify-between rounded-lg border border-line px-3 py-2 text-[13.5px] hover:border-navy"><span><Icon name="book" className="mr-1.5 inline h-3.5 w-3.5 text-brand" />{v.content.title} · v{v.version}</span><span className="text-[12px] text-ink-500">{ago(v.submitted_at)}{lateLabel(v.submitted_at) && <b className="ml-1.5 text-tier4">· {lateLabel(v.submitted_at)}</b>}</span></Link></li>
               ))}
               {mineStages.slice(0, 3).map((s) => (
-                <li key={s.id}><Link href={`/approvals/content/${s.content.id}`} className="flex items-center justify-between rounded-lg border border-line px-3 py-2 text-[13px] hover:border-navy"><span><Icon name="layers" className="mr-1.5 inline h-3.5 w-3.5 text-brand" />{s.content.title}</span><span className="text-[11.5px] capitalize text-ink-500">{s.stage.replace("_", " ")}</span></Link></li>
+                <li key={s.id}><Link href={`/approvals/content/${s.content.id}`} className="flex items-center justify-between rounded-lg border border-line px-3 py-2 text-[13.5px] hover:border-navy"><span><Icon name="layers" className="mr-1.5 inline h-3.5 w-3.5 text-brand" />{s.content.title}</span><span className="text-[12px] capitalize text-ink-500">{s.stage.replace("_", " ")}</span></Link></li>
               ))}
               {eduSteps.map(({ p, cur }) => (
-                <li key={p.id}><Link href={`/approvals/people/${p.id}`} className="flex items-center justify-between rounded-lg border border-line px-3 py-2 text-[13px] hover:border-navy"><span className="flex items-center gap-2"><Avatar name={p.person.full_name} size={22} />{p.person.full_name}</span><span className="text-[11.5px] text-ink-500">{cur.step.replace(/(\d)/, " $1")}{cur.opened_at ? ` · ${ago(cur.opened_at)}` : ""}</span></Link></li>
+                <li key={p.id}><Link href={`/approvals/people/${p.id}`} className="flex items-center justify-between rounded-lg border border-line px-3 py-2 text-[13.5px] hover:border-navy"><span className="flex items-center gap-2"><Avatar name={p.person.full_name} size={22} />{p.person.full_name}</span><span className="text-[12px] text-ink-500">{cur.step.replace(/(\d)/, " $1")}{cur.opened_at ? ` · ${ago(cur.opened_at)}{lateLabel(cur.opened_at) && <b className="ml-1.5 text-tier4">· {lateLabel(cur.opened_at)}</b>}` : ""}</span></Link></li>
               ))}
               {eduSteps.length + mineStages.length + (has(me, "education_principal") ? pendingContent.data?.length ?? 0 : 0) === 0 && <Empty title="Nothing waiting on Education" icon="check" />}
             </ul>
           </Card>
 
           <Card>
-            <CardTitle icon="award" right={<Link href="/cctp" className="text-[12.5px] font-medium text-brand hover:underline">CCTP</Link>}>Mock classes booked</CardTitle>
-            {(cctp.data?.length ?? 0) === 0 ? <p className="text-[13px] text-ink-500">None booked.</p> : ((cctp.data ?? []) as any[]).map((b) => (
-              <div key={b.id} className="flex items-center justify-between py-1.5 text-[13px]"><span className="font-medium text-navy">{b.person.full_name}</span><span className="text-ink-500">{fmtDateTime(b.scheduled_for)}</span></div>
+            <CardTitle icon="award" right={<Link href="/cctp" className="text-[13px] font-medium text-brand hover:underline">CCTP</Link>}>Mock classes booked</CardTitle>
+            {(cctp.data?.length ?? 0) === 0 ? <p className="text-[13.5px] text-ink-500">None booked.</p> : ((cctp.data ?? []) as any[]).map((b) => (
+              <div key={b.id} className="flex items-center justify-between py-1.5 text-[13.5px]"><span className="font-medium text-navy">{b.person.full_name}</span><span className="text-ink-500">{fmtDateTime(b.scheduled_for)}</span></div>
             ))}
           </Card>
 
           <Card>
-            <CardTitle icon="target" right={<Link href="/onboarding" className="text-[12.5px] font-medium text-brand hover:underline">Open</Link>}>Your QAer onboarding</CardTitle>
-            <div className="flex items-center gap-3"><div className="h-2 flex-1 overflow-hidden bg-canvas"><div className={cx("h-full", onb === 100 ? "bg-tier1" : "bg-brand")} style={{ width: `${onb}%` }} /></div><span className="text-[13px] font-bold tabular-nums">{onb}%</span></div>
+            <CardTitle icon="target" right={<Link href="/onboarding" className="text-[13px] font-medium text-brand hover:underline">Open</Link>}>Your QAer onboarding</CardTitle>
+            <div className="flex items-center gap-3"><div className="h-2 flex-1 overflow-hidden bg-canvas"><div className={cx("h-full", onb === 100 ? "bg-tier1" : "bg-brand")} style={{ width: `${onb}%` }} /></div><span className="text-[13.5px] font-bold tabular-nums">{onb}%</span></div>
           </Card>
         </div>
       </div>
-      <p className="text-[11.5px] text-ink-400">Updated {ago(now)}.</p>
+      <p className="text-[12px] text-ink-400">Updated {ago(now)}.</p>
     </div>
   );
 }

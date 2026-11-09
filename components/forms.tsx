@@ -27,7 +27,7 @@ export function ActionForm({ action, children, className, resetOnSuccess = false
     <form ref={ref} action={run} className={className}>
       {children}
       {state && (
-        <div role="status" className={cx("mt-3 flex items-start gap-2 rounded-lg px-3 py-2 text-[12.5px]",
+        <div role="status" className={cx("mt-3 flex items-start gap-2 rounded-lg px-3 py-2 text-[13px]",
           state.ok ? "bg-tier1-bg text-[#0A5A3E]" : "bg-tier4-bg text-[#7A1F1A]")}>
           <Icon name={state.ok ? "check" : "alert"} className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <span>{state.ok ? state.message ?? "Saved." : state.error}</span>
@@ -58,11 +58,11 @@ export function Rating({ name, label }: { name: string; label: string }) {
   const [v, setV] = useState<number>(0);
   return (
     <div className="flex flex-col gap-2 border-b border-line/70 py-3 last:border-0 sm:flex-row sm:items-center sm:justify-between">
-      <span className="text-[13.5px] text-ink">{label}</span>
+      <span className="text-[14px] text-ink">{label}</span>
       <div className="flex gap-1.5">
         {[1, 2, 3, 4, 5].map((n) => (
           <button key={n} type="button" onClick={() => setV(n)}
-            className={cx("h-9 w-9 rounded-lg text-[13px] font-semibold ring-1 ring-inset transition",
+            className={cx("h-9 w-9 rounded-lg text-[13.5px] font-semibold ring-1 ring-inset transition",
               v >= n ? "bg-brand text-white ring-brand" : "bg-white text-ink-500 ring-line hover:bg-canvas")}>
             {n}
           </button>

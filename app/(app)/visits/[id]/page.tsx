@@ -5,7 +5,7 @@ import { db } from "@/lib/supabase";
 import { Badge, Card, CardTitle, Empty, KV, Notice, PageHeader, ScoreBar, cx, input, label as lbl } from "@/components/ui";
 import { ActionForm, Submit } from "@/components/forms";
 import { VisitInstrument } from "@/components/instrument";
-import { visitRespond } from "@/app/actions";
+import { schemaVersion, visitRespond } from "@/app/actions";
 import { FOCUS, STATUS_LABEL, fmtDate, fmtDateTime, num, visitLabel } from "@/lib/format";
 
 export default async function VisitPage({ params }: { params: Promise<{ id: string }> }) {
@@ -18,8 +18,21 @@ export default async function VisitPage({ params }: { params: Promise<{ id: stri
   if (!v) notFound();
   const mine = v.assignee_id === me.id;
   const open = !v.submitted_at && v.status !== "cancelled";
+  // The report form opens from 15 minutes before the start, and only once the invite is accepted.
+  const opensAt = new Date(new Date(v.scheduled_for).getTime() - 15 * 60 * 1000);
+  const scoringOpen = Date.now() >= opensAt.getTime();
   const { data: ctx } = mine || has(me, "segment_owner", "education_principal") ? await supabase.rpc("visit_context", { p_visit: id }) : { data: null };
-  const { data: reasons } = await supabase.from("settings").select("value").eq("key", "red_flag_reasons").maybeSingle();
+  const [{ data: reasons }, { data: anchors }, sv] = await Promise.all([
+    supabase.from("settings").select("value").eq("key", "red_flag_reasons").maybeSingle(),
+    supabase.from("settings").select("value, status").eq("key", "scoring_anchors").maybeSingle(),
+    schemaVersion(),
+  ]);
+  // Evidence links are signed per viewer; storage refuses anyone outside the visit's observer, owner and the Education Principal.
+  const evidence: { path: string; kind: string; label: string | null }[] = Array.isArray(v.evidence) ? v.evidence : [];
+  const links = v.submitted_at && evidence.length
+    ? await Promise.all(evidence.map(async (e) => ({ ...e, url: (await supabase.storage.from("evidence").createSignedUrl(e.path, 3600)).data?.signedUrl as string | undefined })))
+    : [];
+  const sig = (ctx as any)?.signals;
 
   const team: { id: string; name: string; role: string }[] = (ctx as any)?.team ?? [];
   const subjects: { id: string | null; name: string; role: "instructor" | "ta" | "class" }[] = [];
@@ -62,35 +75,50 @@ export default async function VisitPage({ params }: { params: Promise<{ id: stri
           <CardTitle icon="doc" sub={v.qa_type === "education" ? "Earlier class-level comments only — never the instructor's earlier QA scores (bias rule)." : "Short pre-visit brief"}>Pre-visit context</CardTitle>
           <div className="grid gap-5 sm:grid-cols-2">
             <div>
-              <div className="mb-1.5 text-[11.5px] font-semibold uppercase tracking-wider text-ink-500">Team</div>
-              <ul className="space-y-1 text-[13px]">{team.map((t) => <li key={t.id}>{t.name} <span className="text-ink-500">· {t.role === "ta" ? "TA" : "Instructor"}</span></li>)}</ul>
-              <div className="mb-1.5 mt-4 text-[11.5px] font-semibold uppercase tracking-wider text-ink-500">Last sessions</div>
-              <ul className="space-y-1 text-[13px]">{((ctx as any).recent_sessions ?? []).map((s: any, i: number) => <li key={i}>{fmtDate(s.at, { weekday: "short", day: "numeric", month: "short" })} · {s.topic}</li>)}</ul>
+              <div className="mb-1.5 text-[12px] font-semibold uppercase tracking-wider text-ink-500">Team</div>
+              <ul className="space-y-1 text-[13.5px]">{team.map((t) => <li key={t.id}>{t.name} <span className="text-ink-500">· {t.role === "ta" ? "TA" : "Instructor"}</span></li>)}</ul>
+              {sig && (
+                <>
+                  <div className="mb-1.5 mt-4 text-[12px] font-semibold uppercase tracking-wider text-ink-500">This week in the CODED App</div>
+                  <ul className="space-y-1 text-[13.5px]">
+                    <li>Attendance logged on time: <b className="tabular-nums">{sig.attendance_on_time ?? "—"}%</b></li>
+                    <li>Ungraded over 72h: <b className="tabular-nums">{sig.ungraded_backlog ?? 0}</b></li>
+                    {!sig.ops_view && <li>Task completion: <b className="tabular-nums">{sig.completion_this_week ?? "—"}%</b></li>}
+                  </ul>
+                </>
+              )}
+              <div className="mb-1.5 mt-4 text-[12px] font-semibold uppercase tracking-wider text-ink-500">Last sessions</div>
+              <ul className="space-y-1 text-[13.5px]">{((ctx as any).recent_sessions ?? []).map((s: any, i: number) => <li key={i}>{fmtDate(s.at, { weekday: "short", day: "numeric", month: "short" })} · {s.topic}</li>)}</ul>
             </div>
             <div>
-              <div className="mb-1.5 text-[11.5px] font-semibold uppercase tracking-wider text-ink-500">Previous One Thing</div>
-              {((ctx as any).previous_one_thing ?? []).length === 0 ? <p className="text-[13px] text-ink-500">None yet — full marks on follow-through for a first visit.</p> : (
-                <ul className="space-y-1.5 text-[13px]">{(ctx as any).previous_one_thing.map((o: any, i: number) => <li key={i}><b>{team.find((t) => t.id === o.person)?.name ?? "—"}:</b> {o.one_thing}</li>)}</ul>
+              <div className="mb-1.5 text-[12px] font-semibold uppercase tracking-wider text-ink-500">Previous One Thing</div>
+              {((ctx as any).previous_one_thing ?? []).length === 0 ? <p className="text-[13.5px] text-ink-500">None yet — full marks on follow-through for a first visit.</p> : (
+                <ul className="space-y-1.5 text-[13.5px]">{(ctx as any).previous_one_thing.map((o: any, i: number) => <li key={i}><b>{team.find((t) => t.id === o.person)?.name ?? "—"}:</b> {o.one_thing}{o.same_cohort === false && <span className="text-ink-500"> · from an earlier cohort</span>}</li>)}</ul>
               )}
-              <div className="mb-1.5 mt-4 text-[11.5px] font-semibold uppercase tracking-wider text-ink-500">Class-level comments</div>
-              <ul className="space-y-1 text-[13px]">{((ctx as any).class_comments ?? []).slice(0, 3).map((c: any, i: number) => <li key={i}>{c.action_points ?? "—"} <span className="text-ink-500">· {fmtDate(c.at, { day: "numeric", month: "short" })}</span></li>)}</ul>
+              <div className="mb-1.5 mt-4 text-[12px] font-semibold uppercase tracking-wider text-ink-500">Class-level comments</div>
+              <ul className="space-y-1 text-[13.5px]">{((ctx as any).class_comments ?? []).slice(0, 3).map((c: any, i: number) => <li key={i}>{c.action_points ?? "—"} <span className="text-ink-500">· {fmtDate(c.at, { day: "numeric", month: "short" })}</span></li>)}</ul>
             </div>
           </div>
         </Card>
       )}
 
-      {mine && open && v.status !== "planned" ? (
-        <VisitInstrument visitId={id} kind={v.kind} rubric={v.template?.rubric} subjects={subjects} redFlagReasons={(reasons?.value as string[]) ?? []} />
+      {mine && open && v.status !== "planned" && !(v.status === "accepted" && scoringOpen) ? (
+        <Notice tone="brand" title={v.status === "accepted" ? `Scoring opens at ${fmtDateTime(opensAt)}` : "Accept the invite to score this visit"}>
+          {v.status === "accepted" ? "The report form opens 15 minutes before the session starts. Read the pre-visit context in the meantime." : "Once you accept, the report form opens 15 minutes before the session starts."}
+        </Notice>
+      ) : mine && open && v.status === "accepted" ? (
+        <VisitInstrument visitId={id} kind={v.kind} rubric={v.template?.rubric} subjects={subjects} redFlagReasons={(reasons?.value as string[]) ?? []}
+          anchors={(anchors?.value as any) ?? null} anchorsDraft={anchors ? anchors.status !== "decided" : true} evidence={sv >= 10 ? evidence : undefined} />
       ) : open ? (
         <Notice tone="brand" title="Not submitted yet">{v.assignee ? `${v.assignee.full_name} will file the report after the visit.` : "This visit needs an observer."} {!v.assignee && <Link href={`/visits/new?visit=${id}`} className="font-semibold underline">Assign one</Link>}</Notice>
       ) : (
-        <Report v={v} />
+        <Report v={v} links={links} />
       )}
     </div>
   );
 }
 
-function Report({ v }: { v: any }) {
+function Report({ v, links }: { v: any; links: { path: string; kind: string; label: string | null; url?: string }[] }) {
   return (
     <div className="space-y-5">
       <Card>
@@ -102,7 +130,7 @@ function Report({ v }: { v: any }) {
           <div className="mb-4 space-y-3">
             {v.scores.map((s: any) => (
               <div key={s.id} className="grid grid-cols-[minmax(0,1fr)_140px_48px] items-center gap-3">
-                <span className="text-[13.5px] font-medium text-navy">{s.subject?.full_name ?? "Class overall"} <span className="text-[12px] font-normal text-ink-500">{s.subject_role === "ta" ? "TA" : s.subject_role}</span></span>
+                <span className="text-[14px] font-medium text-navy">{s.subject?.full_name ?? "Class overall"} <span className="text-[12.5px] font-normal text-ink-500">{s.subject_role === "ta" ? "TA" : s.subject_role}</span></span>
                 <ScoreBar value={s.pct} />
                 <span className={cx("text-right tabular-nums font-semibold", Number(s.pct) < 75 ? "text-tier4" : "text-navy")}>{num(s.pct)}</span>
               </div>
@@ -114,13 +142,16 @@ function Report({ v }: { v: any }) {
         {v.one_thing && <KV k="The One Thing" v={v.one_thing} />}
         {v.action_points && <KV k="Action points" v={<span className="font-normal">{v.action_points}</span>} />}
         {v.flags?.length > 0 && <KV k="Flags" v={v.flags.map((f: string) => <Badge key={f} tone="red">{f === "remediation_shadow_tier1" ? "Shadow a Tier 1 instructor" : f}</Badge>)} />}
-        {v.checklist && <div className="mt-3 grid gap-1.5 sm:grid-cols-2">{Object.entries(v.checklist).map(([k, b]) => <div key={k} className="text-[12.5px]"><Badge tone={b ? "green" : "red"}>{b ? "Yes" : "No"}</Badge> <span className="capitalize">{k.replace(/_/g, " ")}</span></div>)}</div>}
+        {links.length > 0 && <KV k="Evidence" v={<span className="flex flex-wrap gap-2">{links.map((l) => l.url
+          ? <a key={l.path} href={l.url} target="_blank" rel="noreferrer" className="font-semibold text-brand">{l.kind === "voice" ? "Voice note" : "Photo"}{l.label ? ` · ${l.label}` : ""}</a>
+          : <span key={l.path} className="text-ink-500">{l.kind === "voice" ? "Voice note" : "Photo"} (not visible to your role)</span>)}</span>} />}
+        {v.checklist && <div className="mt-3 grid gap-1.5 sm:grid-cols-2">{Object.entries(v.checklist).map(([k, b]) => <div key={k} className="text-[13px]"><Badge tone={b ? "green" : "red"}>{b ? "Yes" : "No"}</Badge> <span className="capitalize">{k.replace(/_/g, " ")}</span></div>)}</div>}
       </Card>
       {v.interventions?.length > 0 && (
         <Card>
           <CardTitle icon="alert" sub="Logged under the Intervene policy">Signal / Intervene</CardTitle>
           {v.interventions.map((i: any, k: number) => (
-            <div key={k} className="border-b border-line/70 py-2 text-[13px] last:border-0"><Badge tone={i.kind === "intervene" ? "amber" : "brand"}>{i.kind}</Badge> <b>{i.trigger}</b> — {i.said}. <span className="text-ink-500">{i.outcome}</span></div>
+            <div key={k} className="border-b border-line/70 py-2 text-[13.5px] last:border-0"><Badge tone={i.kind === "intervene" ? "amber" : "brand"}>{i.kind}</Badge> <b>{i.trigger}</b> — {i.said}. <span className="text-ink-500">{i.outcome}</span></div>
           ))}
         </Card>
       )}

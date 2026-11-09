@@ -19,7 +19,7 @@ export default async function Visits() {
   const needs = others.filter((v) => v.status === "planned" && !v.assignee_id);
   const upcoming = others.filter((v) => ["invited", "accepted", "planned"].includes(v.status) && v.assignee_id && !v.submitted_at);
   const done = others.filter((v) => v.submitted_at).sort((a, b) => (a.submitted_at < b.submitted_at ? 1 : -1));
-  const canSchedule = has(me, "segment_owner", "education_principal", "senior_instructor", "operations");
+  const canSchedule = has(me, "segment_owner", "education_principal", "senior_instructor", "operations", "education_coordinator");
 
   return (
     <div>
@@ -29,18 +29,18 @@ export default async function Visits() {
 
       {mineOpen.length > 0 && (
         <section className="mb-8">
-          <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-wider text-brand">Assigned to you</h2>
+          <h2 className="mb-3 text-[13.5px] font-semibold uppercase tracking-wider text-brand">Assigned to you</h2>
           <div className="grid gap-3 md:grid-cols-2">
             {mineOpen.map((v) => (
               <Link key={v.id} href={`/visits/${v.id}`} className="group rounded-xl border border-brand-100 bg-white p-4 shadow-card transition hover:-translate-y-0.5 hover:shadow-lift">
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <div className="text-[15px] font-semibold text-navy">{visitLabel(v)}</div>
-                    <div className="text-[12.5px] text-ink-500">{v.cohort?.name} · {v.classroom?.name}</div>
+                    <div className="text-[13px] text-ink-500">{v.cohort?.name} · {v.classroom?.name}</div>
                   </div>
                   <Badge tone={v.status === "accepted" ? "green" : "brand"}>{v.status === "invited" ? "Invite — respond" : STATUS_LABEL[v.status]}</Badge>
                 </div>
-                <div className="mt-3 flex items-center justify-between text-[13px]">
+                <div className="mt-3 flex items-center justify-between text-[13.5px]">
                   <span className="flex items-center gap-1.5 text-ink-600"><Icon name="clock" className="h-4 w-4" /> {fmtDateTime(v.scheduled_for)}</span>
                   <span className="flex items-center gap-1 font-medium text-brand">Open instrument <Icon name="arrow" className="h-3.5 w-3.5" /></span>
                 </div>
@@ -52,7 +52,7 @@ export default async function Visits() {
 
       {needs.length > 0 && (
         <section className="mb-8">
-          <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-wider text-tier3">Needs an observer · {needs.length}</h2>
+          <h2 className="mb-3 text-[13.5px] font-semibold uppercase tracking-wider text-tier3">Needs an observer · {needs.length}</h2>
           <Card pad={false} className="px-5 pb-1 pt-3">
             <Table head={["Visit", "Classroom", "When", ""]}>
               {needs.map((v) => (
@@ -65,7 +65,7 @@ export default async function Visits() {
       )}
 
       <section className="mb-8">
-        <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-wider text-ink-500">Upcoming · {upcoming.length}</h2>
+        <h2 className="mb-3 text-[13.5px] font-semibold uppercase tracking-wider text-ink-500">Upcoming · {upcoming.length}</h2>
         {upcoming.length === 0 ? <Empty title="No upcoming visits you can see" /> : (
           <Card pad={false} className="px-5 pb-1 pt-3">
             <Table head={["Visit", "Classroom", "Observer", "When", "Status"]}>
@@ -82,15 +82,15 @@ export default async function Visits() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-wider text-ink-500">Completed · {done.length}</h2>
+        <h2 className="mb-3 text-[13.5px] font-semibold uppercase tracking-wider text-ink-500">Completed · {done.length}</h2>
         {done.length === 0 ? <Empty title="No completed visits you can see" /> : (
           <Card pad={false} className="px-5 pb-1 pt-3">
             <Table head={["Visit", "Classroom", "Observer", "Scores", "Release"]}>
               {done.map((v) => (
                 <tr key={v.id}>
-                  <td className={td}><Link href={`/visits/${v.id}`} className="font-medium text-navy hover:text-brand">{visitLabel(v)}</Link><div className="text-[11.5px] text-ink-500">{fmtDateTime(v.submitted_at)}</div></td>
+                  <td className={td}><Link href={`/visits/${v.id}`} className="font-medium text-navy hover:text-brand">{visitLabel(v)}</Link><div className="text-[12px] text-ink-500">{fmtDateTime(v.submitted_at)}</div></td>
                   <td className={td}>{v.cohort?.name} · {v.classroom?.name}</td><td className={td}>{v.assignee?.full_name}</td>
-                  <td className={td}><span className="tabular-nums text-[12.5px]">{(v.scores ?? []).map((s: any) => num(s.pct)).join(" · ") || "—"}</span></td>
+                  <td className={td}><span className="tabular-nums text-[13px]">{(v.scores ?? []).map((s: any) => num(s.pct)).join(" · ") || "—"}</span></td>
                   <td className={td}><Badge tone={v.release_status === "released" ? "green" : v.release_status === "pending" ? "amber" : "neutral"}>{v.release_status === "released" ? "Released" : v.release_status === "pending" ? "Pending" : "Private"}</Badge></td>
                 </tr>
               ))}

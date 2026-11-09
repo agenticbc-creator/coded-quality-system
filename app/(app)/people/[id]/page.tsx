@@ -2,10 +2,10 @@ import { notFound, redirect } from "next/navigation";
 import { getMe, has } from "@/lib/session";
 import { loadPerson } from "@/lib/person";
 import { db } from "@/lib/supabase";
-import { Breakdown, FeedbackList, Hero, History, JDChecklist, Plans, Profile, Review360, Signals, Surveys, Trend, WriteBack } from "@/components/performance";
+import { Breakdown, FeedbackList, Hero, History, JDChecklist, Plans, Profile, Review360, SegmentScores, Signals, Surveys, Trend, WriteBack } from "@/components/performance";
 import { Badge, Card, CardTitle, Empty, Field, PageHeader, Table, input, td } from "@/components/ui";
 import { ActionForm, Disclosure, Submit } from "@/components/forms";
-import { accountabilityAdd, planSave } from "@/app/actions";
+import { accountabilityAdd, planReview, planSave, schemaVersion } from "@/app/actions";
 import { LinkButton } from "@/components/ui";
 import { fmtDate, num, visitLabel } from "@/lib/format";
 
@@ -16,9 +16,10 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
   const d = await loadPerson(id);
   if (!d.person) notFound();
   const supabase = await db();
-  const [{ data: notes }, { data: scores }] = await Promise.all([
+  const [{ data: notes }, { data: scores }, v] = await Promise.all([
     supabase.from("feedback").select("*, author:people!feedback_author_id_fkey(full_name), cohort:cohorts(name)").eq("subject_id", id).order("created_at", { ascending: false }),
     supabase.from("visit_scores").select("*, visit:visits(kind, qa_type, mode, week_no, submitted_at, release_status, cohort:cohorts(name))").eq("subject_person_id", id),
+    schemaVersion(),
   ]);
   const canSeeScores = Boolean(d.current) || d.composites.length > 0;
   const isOwner = has(me, "segment_owner");
@@ -36,6 +37,7 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
         <div className="space-y-6">
           {canSeeScores && <Breakdown d={d} />}
+          <SegmentScores d={d} />
           <Signals d={d} />
           {(scores?.length ?? 0) > 0 && (
             <Card>
@@ -43,7 +45,7 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
               <Table head={["Visit", "Cohort", "Role", "Score", "Status"]}>
                 {scores!.sort((a: any, b: any) => (a.visit.submitted_at < b.visit.submitted_at ? 1 : -1)).map((s: any) => (
                   <tr key={s.id}>
-                    <td className={td}><div className="font-medium text-navy">{visitLabel(s.visit)}</div><div className="text-[11.5px] text-ink-500">Week {s.visit.week_no} · {fmtDate(s.visit.submitted_at)}</div></td>
+                    <td className={td}><div className="font-medium text-navy">{visitLabel(s.visit)}</div><div className="text-[12px] text-ink-500">Week {s.visit.week_no} · {fmtDate(s.visit.submitted_at)}</div></td>
                     <td className={td}>{s.visit.cohort?.name}</td>
                     <td className={td}>{s.subject_role === "ta" ? "TA" : "Instructor"}</td>
                     <td className={td}><span className={`tabular-nums font-semibold ${Number(s.pct) < 75 ? "text-tier4" : "text-navy"}`}>{num(s.pct)}</span></td>
@@ -58,11 +60,11 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
               <CardTitle icon="lock" sub="Private by default. Only released notes reach the educator, as a separate copy.">Notes (private)</CardTitle>
               <ul className="space-y-2.5">
                 {notes!.map((f: any) => (
-                  <li key={f.id} className="rounded-lg border border-line p-3 text-[13px]">
+                  <li key={f.id} className="rounded-lg border border-line p-3 text-[13.5px]">
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge tone={f.severity === "red_flag" ? "red" : f.type === "praise" ? "green" : f.type === "concern" ? "amber" : "neutral"}>{f.severity === "red_flag" ? `Red flag · ${f.red_flag_reason}` : f.type}</Badge>
                       <Badge>{f.status.replace("_", " ")}</Badge>
-                      <span className="text-[12px] text-ink-500">{f.author?.full_name} · {fmtDate(f.created_at)} · {f.cohort?.name}</span>
+                      <span className="text-[12.5px] text-ink-500">{f.author?.full_name} · {fmtDate(f.created_at)} · {f.cohort?.name}</span>
                     </div>
                     <p className="mt-1.5 text-ink">{f.body}</p>
                   </li>
@@ -92,9 +94,29 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
                   </Field>
                   <div className="flex flex-wrap gap-2">
                     <Submit size="sm" icon="check">{p ? "Save plan" : "Open plan"}</Submit>
-                    {p && <Submit size="sm" variant="secondary" name="status" value="closed">Close plan</Submit>}
+                    {p && v < 10 && <Submit size="sm" variant="secondary" name="status" value="closed">Close plan</Submit>}
                   </div>
                 </ActionForm>
+              ))}
+              {v >= 10 && d.plans.filter((p) => p.status === "open").map((p: any) => (
+                <div key={`review-${p.id}`} className="mt-4 border-t border-line pt-3">
+                  <Disclosure label={`Record the ${p.kind === "coaching" ? "Coaching" : "Improvement"} Plan review`}>
+                    <ActionForm action={planReview} className="space-y-3">
+                      <input type="hidden" name="person" value={id} /><input type="hidden" name="plan" value={p.id} />
+                      <Field label="Outcome">
+                        <select name="outcome" className={input} defaultValue="met">
+                          <option value="met">Goals met: close the plan</option>
+                          <option value="extended">Not yet: extend to a new date</option>
+                          {p.kind === "coaching" ? <option value="escalated">Not met: move to an Improvement Plan</option> : <option value="hr_review">Not met: ask HR to step in</option>}
+                        </select>
+                      </Field>
+                      <Field label="New review date (for an extension or a new plan)"><input type="date" name="due" className={input} /></Field>
+                      <Field label="What you saw"><textarea name="note" rows={3} required className={input} placeholder="Two of three goals met; time-boxing now consistent across sessions." /></Field>
+                      <p className="text-[12px] text-ink-500">The educator sees the outcome and your note. An Improvement Plan carries over the goals not yet met.</p>
+                      <Submit size="sm" icon="check">Record the review</Submit>
+                    </ActionForm>
+                  </Disclosure>
+                </div>
               ))}
             </Card>
           )}
@@ -102,11 +124,11 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
           {canSeeScores && <Review360 d={d} self={false} />}
           <Surveys d={d} />
           <Profile d={d} />
-          <WriteBack d={d} />
+          <WriteBack d={d} showLastQa={has(me, "segment_owner", "hr", "education_principal", "system_owner")} />
           {(isOwner || has(me, "operations")) && liveCohort && (
             <Card>
               <CardTitle icon="pen" sub="For what the system cannot see. Feeds accountability (coordinator entries).">Accountability entry</CardTitle>
-              {d.acc.length > 0 && <ul className="mb-3 space-y-1 text-[12.5px]">{d.acc.map((a) => <li key={a.id} className="flex justify-between"><span>{a.label}</span><span className="tabular-nums">{a.score}</span></li>)}</ul>}
+              {d.acc.length > 0 && <ul className="mb-3 space-y-1 text-[13px]">{d.acc.map((a) => <li key={a.id} className="flex justify-between"><span>{a.label}</span><span className="tabular-nums">{a.score}</span></li>)}</ul>}
               <Disclosure label="Add entry">
                 <ActionForm action={accountabilityAdd} resetOnSuccess className="space-y-3">
                   <input type="hidden" name="person" value={id} />
