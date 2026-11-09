@@ -11,9 +11,9 @@ export function SetPasswordForm() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    // The link is read here once. Left on, the client would also read it on start-up and use the one-time code
-    // before this code runs, which showed "expired" to people whose link had in fact worked.
-    const supabase = createBrowserClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { detectSessionInUrl: false } });
+    // The SSR client always reads a ?code= link itself on start-up (it forces PKCE and URL detection), so the code
+    // is already spent by the time this runs: look for the session it made before trying anything else.
+    const supabase = createBrowserClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     (async () => {
       // Invite links carry the session in the URL hash (#access_token=…&refresh_token=…); newer links use ?code=.
       const h = new URLSearchParams(window.location.hash.slice(1));
@@ -27,8 +27,11 @@ export function SetPasswordForm() {
           if (error) throw error;
           window.history.replaceState(null, "", window.location.pathname);
         } else if (code) {
-          const { error } = await supabase.auth.exchangeCodeForSession(code);
-          if (error) throw new Error("Open the link in the same browser you asked for it from, or ask for a new one.");
+          const { data: got } = await supabase.auth.getSession();
+          if (!got.session) {
+            const { error } = await supabase.auth.exchangeCodeForSession(code);
+            if (error) throw new Error("Open the link in the same browser you asked for it from, or ask for a new one.");
+          }
           window.history.replaceState(null, "", window.location.pathname);
         }
         const { data } = await supabase.auth.getUser();

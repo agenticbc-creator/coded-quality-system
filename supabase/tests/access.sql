@@ -245,4 +245,32 @@ select pg_temp.refused($$select person_set_email((select id from people where em
 select pg_temp.refused($$select person_set_email((select id from people where erp_supplier_id = 'SUP-IMP-1'), 'noura@demo.coded.test')$$, 'email: one email per record', 'already has this email');
 rollback;
 
+begin;
+insert into people (full_name, roles, home_segment, erp_supplier_id, approval_status) values ('Turned Down', '{instructor}', 'pro', 'SUP-IMP-2', 'not_approved');
+insert into people (full_name, roles, home_segment, erp_supplier_id, erp_contractor_status) values ('Gone Contractor', '{instructor}', 'pro', 'SUP-IMP-3', 'Inactive');
+insert into people (full_name, roles, home_segment, erp_supplier_id, erp_contractor_status, approval_status) values ('Gone But Cleared', '{ta}', 'pro', 'SUP-IMP-4', 'Inactive', 'cleared');
+select pg_temp.act_as('yousef');
+select pg_temp.refused($$select person_set_approval((select id from people where erp_supplier_id = 'SUP-IMP-3'), 'cleared', 'Hired as TA in ERPNext')$$, 'clearance: an owner of another segment cannot clear', 'segment owner');
+select pg_temp.act_as('noura');
+select pg_temp.refused($$select person_set_approval((select id from people where erp_supplier_id = 'SUP-IMP-2'), 'cleared', 'Hired after all')$$, 'clearance: someone the pipeline turned down is not cleared by hand', 'not approved');
+select pg_temp.refused($$select person_set_approval((select id from people where erp_supplier_id = 'SUP-IMP-3'), 'cleared', 'Hired as instructor')$$, 'clearance: an Inactive contractor is not cleared', 'Inactive');
+select pg_temp.refused($$select classroom_assign((select room_a from t_ids), (select id from people where erp_supplier_id = 'SUP-IMP-4'), 'ta')$$, 'staffing: an Inactive contractor is not staffed even if cleared', 'Inactive');
+reset role;
+select pg_temp.ok(not has_function_privilege('anon', 'person_set_approval(uuid,text,text)', 'execute') and not has_function_privilege('anon', 'person_set_email(uuid,text)', 'execute'),
+  'privileges: signed-out callers cannot run the new functions');
+rollback;
+
+begin;
+-- A cleared instructor observing a peer's class (shadowing) sees the class, not the peer's coaching or signals
+select pg_temp.act_as('noura');
+select set_config('t.peer', visit_schedule(null, (select fs from t_ids), (select room_a from t_ids), 'shadowing', null, 'planned', 'class', null, null,
+  (select id from people where email = 'bader@demo.coded.test'), (select teach_at from t_ids))::text, true) \g /dev/null
+select pg_temp.act_as('bader');
+select pg_temp.ok((visit_context(current_setting('t.peer')::uuid)->>'peer')::boolean
+  and jsonb_array_length(visit_context(current_setting('t.peer')::uuid)->'previous_one_thing') = 0
+  and visit_context(current_setting('t.peer')::uuid)->'signals' = 'null'::jsonb, 'shadowing: a peer observer gets no coaching items or signals');
+select pg_temp.act_as('noura');
+select pg_temp.ok(not (visit_context(current_setting('t.peer')::uuid)->>'peer')::boolean, 'shadowing: the segment owner still gets the full context');
+rollback;
+
 \echo 'all access tests passed'

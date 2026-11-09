@@ -92,7 +92,8 @@ export default async function VisitPage({ params }: { params: Promise<{ id: stri
             </div>
             <div>
               <div className="mb-1.5 text-[12px] font-semibold uppercase tracking-wider text-ink-500">Previous One Thing</div>
-              {((ctx as any).previous_one_thing ?? []).length === 0 ? <p className="text-[13.5px] text-ink-500">None yet — full marks on follow-through for a first visit.</p> : (
+              {(ctx as any).peer ? <p className="text-[13.5px] text-ink-500">Shown to the QA team only. You are observing a peer: note what you see in class.</p>
+                : ((ctx as any).previous_one_thing ?? []).length === 0 ? <p className="text-[13.5px] text-ink-500">None yet — full marks on follow-through for a first visit.</p> : (
                 <ul className="space-y-1.5 text-[13.5px]">{(ctx as any).previous_one_thing.map((o: any, i: number) => <li key={i}><b>{team.find((t) => t.id === o.person)?.name ?? "—"}:</b> {o.one_thing}{o.same_cohort === false && <span className="text-ink-500"> · from an earlier cohort</span>}</li>)}</ul>
               )}
               <div className="mb-1.5 mt-4 text-[12px] font-semibold uppercase tracking-wider text-ink-500">Class-level comments</div>

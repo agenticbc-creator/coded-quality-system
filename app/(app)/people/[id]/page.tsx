@@ -30,9 +30,11 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
   ]);
   const canSeeScores = Boolean(d.current) || d.composites.length > 0;
   const isOwner = has(me, "segment_owner");
-  const canClear = (isOwner || has(me, "education_principal", "system_owner")) && v >= 13;
-  const isSystemOwner = has(me, "system_owner") && v >= 13;
   const p = d.person;
+  const ownsSeg = isOwner && [p.home_segment, ...d.classrooms.map((c) => c.classroom.cohort.program?.segment_id)].some((sg) => sg && me.owned_segments.includes(sg));
+  const canClear = (ownsSeg || has(me, "education_principal", "system_owner")) && v >= 13;
+  const isSystemOwner = has(me, "system_owner") && v >= 13;
+  const clearable = p.approval_status === "cleared" || (p.approval_status === "not_started" && (p.erp_contractor_status ?? "Active") === "Active");
   const upcomingVisits = (focusVisits ?? []).filter((x: any) => !x.submitted_at);
   const pastVisits = (focusVisits ?? []).filter((x: any) => x.submitted_at);
   const canConfirm = isOwner || has(me, "senior_instructor", "education_principal", "lead_instructor");
@@ -108,7 +110,7 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
                 {p.erp_instructor_level && <Badge>{p.erp_instructor_level}</Badge>}
                 {p.erp_contractor_status === "Inactive" && <Badge tone="amber">Inactive</Badge>}
               </div>
-              {canClear && p.approval_status !== "in_pipeline" && (
+              {canClear && clearable && (
                 <Disclosure label={p.approval_status === "cleared" ? "Take clearance back" : "Clear to teach"}>
                   <ActionForm action={personSetApproval} className="space-y-2">
                     <input type="hidden" name="person" value={id} />

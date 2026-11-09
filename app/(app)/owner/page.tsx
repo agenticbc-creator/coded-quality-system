@@ -29,7 +29,7 @@ export default async function OwnerHome() {
   const pendingRelease = (visits ?? []).filter((v: any) => v.release_status === "pending").length + (notes ?? []).filter((n: any) => n.severity !== "red_flag").length;
   const reds = (notes ?? []).filter((n: any) => n.severity === "red_flag");
   const myApprovals = (steps ?? []).filter((s: any) => s.pipeline?.status === "in_pipeline" && segs.includes(s.pipeline.segment_id));
-  const unassigned = (visits ?? []).filter((v: any) => v.status === "planned" && !v.assignee_id && mine.some((c: any) => c.id === v.cohort_id));
+  const unassigned = (visits ?? []).filter((v: any) => v.status === "planned" && !v.assignee_id && mine.some((c: any) => c.id === v.cohort_id && c.status !== "closed"));
   const SHOW = 8;
   const upcoming = (visits ?? []).filter((v: any) => ["invited", "accepted"].includes(v.status) && new Date(v.scheduled_for) > new Date()).slice(0, 5);
   const tiers = [1, 2, 3, 4].map((t) => myComps.filter((c: any) => c.tier === t).length);

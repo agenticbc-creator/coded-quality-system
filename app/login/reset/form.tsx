@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { createBrowserClient } from "@supabase/ssr";
+import { createClient } from "@supabase/supabase-js";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/config";
 import { btn, input, label } from "@/components/ui";
 
@@ -15,7 +15,8 @@ export function ResetForm() {
     setBusy(true);
     // The same message shows whether or not the email has an account, so the form does not reveal who is in the system.
     // Implicit flow: the link carries the session itself, so it also works when opened on another device (a phone, say).
-    await createBrowserClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { flowType: "implicit" } })
+    // A plain client is used because the SSR browser client always switches to PKCE; it keeps no session of its own.
+    await createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { flowType: "implicit", persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } })
       .auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/login/set-password` });
     setBusy(false); setSent(true);
   }

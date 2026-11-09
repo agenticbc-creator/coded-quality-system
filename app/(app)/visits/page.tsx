@@ -11,12 +11,13 @@ export default async function Visits() {
   const me = await getMe();
   const supabase = await db();
   const { data } = await supabase.from("visits")
-    .select("*, cohort:cohorts(name), classroom:classrooms(name), assignee:people!visits_assignee_id_fkey(full_name), focus_person:people!visits_focus_person_id_fkey(full_name), scores:visit_scores(pct, subject_role)")
+    .select("*, cohort:cohorts(name, status), classroom:classrooms(name), assignee:people!visits_assignee_id_fkey(full_name), focus_person:people!visits_focus_person_id_fkey(full_name), scores:visit_scores(pct, subject_role)")
     .order("scheduled_for", { ascending: true });
   const all = (data ?? []) as any[];
   const mineOpen = all.filter((v) => v.assignee_id === me.id && !v.submitted_at && v.status !== "cancelled");
   const others = all.filter((v) => !(v.assignee_id === me.id && !v.submitted_at));
-  const needs = others.filter((v) => v.status === "planned" && !v.assignee_id);
+  const needs = others.filter((v) => v.status === "planned" && !v.assignee_id && v.cohort?.status !== "closed");
+  const where = (v: any) => [v.cohort?.name, v.classroom?.name].filter(Boolean).join(" · ");
   const upcoming = others.filter((v) => ["invited", "accepted", "planned"].includes(v.status) && v.assignee_id && !v.submitted_at);
   const done = others.filter((v) => v.submitted_at).sort((a, b) => (a.submitted_at < b.submitted_at ? 1 : -1));
   const canSchedule = has(me, "segment_owner", "education_principal", "senior_instructor", "operations", "education_coordinator");
@@ -36,7 +37,7 @@ export default async function Visits() {
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <div className="text-[15px] font-semibold text-navy">{visitLabel(v)}</div>
-                    <div className="text-[13px] text-ink-500">{v.cohort?.name} · {v.classroom?.name}</div>
+                    <div className="text-[13px] text-ink-500">{where(v)}</div>
                   </div>
                   <Badge tone={v.status === "accepted" ? "green" : "brand"}>{v.status === "invited" ? "Invite — respond" : STATUS_LABEL[v.status]}</Badge>
                 </div>
@@ -56,7 +57,7 @@ export default async function Visits() {
           <Card pad={false} className="px-5 pb-1 pt-3">
             <Table head={["Visit", "Cohort", "Focus", "When", ""]}>
               {needs.map((v) => (
-                <tr key={v.id}><td className={td}><Link href={`/visits/${v.id}`} className="font-medium text-navy hover:text-brand">{visitLabel(v)}</Link>{v.week_no ? <span className="text-ink-500"> · week {v.week_no}</span> : ""}</td><td className={td}>{v.cohort?.name} · {v.classroom?.name}</td><td className={td}>{v.focus_person?.full_name ?? "Whole class"}</td><td className={td}>{fmtDateTime(v.scheduled_for)}</td>
+                <tr key={v.id}><td className={td}><Link href={`/visits/${v.id}`} className="font-medium text-navy hover:text-brand">{visitLabel(v)}</Link>{v.week_no ? <span className="text-ink-500"> · week {v.week_no}</span> : ""}</td><td className={td}>{where(v)}</td><td className={td}>{v.focus_person?.full_name ?? "Whole class"}</td><td className={td}>{fmtDateTime(v.scheduled_for)}</td>
                   <td className={cx(td, "text-right")}>{canSchedule && <Link href={`/visits/new?visit=${v.id}`} className="font-medium text-brand">Assign →</Link>}</td></tr>
               ))}
             </Table>
@@ -72,7 +73,7 @@ export default async function Visits() {
               {upcoming.map((v) => (
                 <tr key={v.id}>
                   <td className={td}><Link href={`/visits/${v.id}`} className="font-medium text-navy hover:text-brand">{visitLabel(v)}</Link>{v.week_no ? <span className="text-ink-500"> · week {v.week_no}</span> : ""}</td>
-                  <td className={td}>{v.cohort?.name} · {v.classroom?.name}</td><td className={td}>{v.assignee?.full_name}</td><td className={td}>{fmtDateTime(v.scheduled_for)}</td>
+                  <td className={td}>{where(v)}</td><td className={td}>{v.assignee?.full_name}</td><td className={td}>{fmtDateTime(v.scheduled_for)}</td>
                   <td className={td}><Badge tone={v.status === "accepted" ? "green" : "neutral"}>{STATUS_LABEL[v.status]}</Badge></td>
                 </tr>
               ))}
@@ -89,7 +90,7 @@ export default async function Visits() {
               {done.map((v) => (
                 <tr key={v.id}>
                   <td className={td}><Link href={`/visits/${v.id}`} className="font-medium text-navy hover:text-brand">{visitLabel(v)}</Link><div className="text-[12px] text-ink-500">{fmtDateTime(v.submitted_at)}</div></td>
-                  <td className={td}>{v.cohort?.name} · {v.classroom?.name}</td><td className={td}>{v.assignee?.full_name ?? (/imported from Notion/.test((v.summary ?? "").split("\n")[0]) ? <span className="text-ink-500">From Notion</span> : "—")}</td>
+                  <td className={td}>{where(v)}</td><td className={td}>{v.assignee?.full_name ?? (/imported from Notion/.test((v.summary ?? "").split("\n")[0]) ? <span className="text-ink-500">From Notion</span> : "—")}</td>
                   <td className={td}><span className="tabular-nums text-[13px]">{(v.scores ?? []).map((s: any) => num(s.pct)).join(" · ") || "—"}</span></td>
                   <td className={td}><Badge tone={v.release_status === "released" ? "green" : v.release_status === "pending" ? "amber" : "neutral"}>{v.release_status === "released" ? "Released" : v.release_status === "pending" ? "Pending" : "Private"}</Badge></td>
                 </tr>
