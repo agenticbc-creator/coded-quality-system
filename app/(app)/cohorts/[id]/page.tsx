@@ -18,7 +18,7 @@ export default async function CohortPage({ params }: { params: Promise<{ id: str
     supabase.from("cohorts").select("*, program:programs(*), content:content_items(id, title, approved_version), backup:people!cohorts_backup_instructor_id_fkey(full_name), classrooms(*, classroom_staff(role, is_lead, person:people(id, full_name, approval_status))), cohort_roles(role, person:people(id, full_name, roles))").eq("id", id).maybeSingle(),
     supabase.from("people").select("id, full_name, roles, approval_status, erp_supplier_id, erp_contractor_status").order("full_name"),
     supabase.from("content_items").select("id, title, approved_version, program_id").not("approved_version", "is", null),
-    supabase.from("visits").select("*, assignee:people!visits_assignee_id_fkey(full_name)").eq("cohort_id", id).order("scheduled_for"),
+    supabase.from("visits").select("*, assignee:people!visits_assignee_id_fkey(full_name), focus_person:people!visits_focus_person_id_fkey(full_name)").eq("cohort_id", id).order("scheduled_for"),
     supabase.from("erp_contracts").select("person_id, status"),
     supabase.rpc("cohort_readiness", { p_cohort: id }),
     schemaVersion(),
@@ -176,7 +176,7 @@ export default async function CohortPage({ params }: { params: Promise<{ id: str
                               {(visits ?? []).filter((v: any) => weekOf(v) === w && (cl.id ? v.classroom_id === cl.id : !planCols.some((x) => x.id && x.id === v.classroom_id))).map((v: any) => (
                                 <Link key={v.id} href={`/visits/${v.id}`} className={cx("rounded-md px-2 py-1 ring-1 ring-inset hover:brightness-95",
                                   v.status === "completed" ? "bg-tier1-bg text-tier1 ring-[#BFE5D5]" : v.status === "cancelled" ? "bg-canvas text-ink-400 line-through ring-line" : !v.assignee_id ? "bg-tier3-bg text-tier3 ring-[#F5DDAF]" : "bg-brand-50 text-brand ring-brand-100")}>
-                                  <span className="font-medium">{v.kind === "shadowing" ? "Shadow" : v.qa_type === "education" ? "Edu QA" : "Ops QA"}{v.mode !== "planned" ? ` · ${v.mode}` : ""}</span>
+                                  <span className="font-medium">{v.kind === "shadowing" ? "Shadow" : v.qa_type === "education" ? "Edu QA" : "Ops QA"}{v.kind === "shadowing" && v.focus_person ? ` ${v.focus_person.full_name.split(" ")[0]}` : ""}{v.mode !== "planned" ? ` · ${v.mode}` : ""}</span>
                                   <span className="block text-[11px] opacity-80">{v.assignee?.full_name?.split(" ")[0] ?? (v.submitted_at ? "from Notion" : "needs observer")} · {fmtDay(v.scheduled_for)}</span>
                                 </Link>
                               ))}

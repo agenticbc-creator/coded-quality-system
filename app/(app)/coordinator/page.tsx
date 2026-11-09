@@ -4,7 +4,7 @@ import { getMe, has } from "@/lib/session";
 import { db } from "@/lib/supabase";
 import { Badge, Card, CardTitle, Empty, LinkButton, Notice, PageHeader, cx } from "@/components/ui";
 import { Icon } from "@/components/icons";
-import { STATUS_LABEL, fmtDateTime, visitLabel } from "@/lib/format";
+import { STATUS_LABEL, fmtDateTime, fmtTime, visitLabel } from "@/lib/format";
 
 export const metadata = { title: "QA calendar" };
 
@@ -18,11 +18,13 @@ export default async function Coordinator() {
     .order("scheduled_for", { ascending: true });
   const all = (data ?? []) as any[];
   const now = new Date();
-  // Kuwait working week: Sunday to Thursday.
-  const sun = new Date(now); sun.setHours(0, 0, 0, 0); sun.setDate(sun.getDate() - sun.getDay());
-  const days = Array.from({ length: 5 }, (_, i) => { const d = new Date(sun); d.setDate(sun.getDate() + i); return d; });
-  const weekEnd = new Date(sun); weekEnd.setDate(sun.getDate() + 5);
-  const week = all.filter((v) => v.scheduled_for && new Date(v.scheduled_for) >= sun && new Date(v.scheduled_for) < weekEnd && v.status !== "cancelled");
+  // Kuwait working week, Sunday to Thursday, worked out in Kuwait time (the server runs in UTC).
+  const kwKey = (d: Date | string) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kuwait" }).format(new Date(d));
+  const todayKey = kwKey(now);
+  const todayKw = new Date(`${todayKey}T00:00:00Z`);
+  const days = Array.from({ length: 5 }, (_, i) => { const d = new Date(todayKw); d.setUTCDate(todayKw.getUTCDate() - todayKw.getUTCDay() + i); return d; });
+  const dayKeys = days.map((d) => d.toISOString().slice(0, 10));
+  const week = all.filter((v) => v.scheduled_for && dayKeys.includes(kwKey(v.scheduled_for)) && v.status !== "cancelled");
   const needs = all.filter((v) => !v.assignee_id && !v.submitted_at && v.status !== "cancelled");
   const unanswered = all.filter((v) => v.status === "invited" && !v.submitted_at);
   const overdueReports = all.filter((v) => !v.submitted_at && v.status === "accepted" && v.scheduled_for && now.getTime() - new Date(v.scheduled_for).getTime() > 24 * 36e5);
@@ -61,16 +63,17 @@ export default async function Coordinator() {
           <div className="overflow-x-auto">
             <div className="grid min-w-[760px] grid-cols-5 gap-2.5">
               {days.map((d) => {
-                const items = week.filter((v) => new Date(v.scheduled_for).toDateString() === d.toDateString());
-                const today = d.toDateString() === now.toDateString();
+                const dk = d.toISOString().slice(0, 10);
+                const items = week.filter((v) => kwKey(v.scheduled_for) === dk);
+                const today = dk === todayKey;
                 return (
                   <div key={d.toISOString()} className="space-y-2">
-                    <div className={cx("label-mono", today && "!text-brand")}>{d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric" })}{today ? " · today" : ""}</div>
+                    <div className={cx("label-mono", today && "!text-brand")}>{d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", timeZone: "UTC" })}{today ? " · today" : ""}</div>
                     {items.length === 0 && <div className="rounded-xl border border-dashed border-hairline p-3 text-[13px] text-ink-500">No visits</div>}
                     {items.map((v) => (
                       <Link key={v.id} href={`/visits/${v.id}`} className={cx("block space-y-1 rounded-xl border p-3", !v.assignee_id ? "border-[#F3C3C7] bg-tier4-bg" : "border-hairline bg-white hover:border-brand")}>
                         <b className="block text-[13.5px] text-ink">{visitLabel(v)} · {v.classroom?.name}</b>
-                        <span className="block font-mono text-[12px] text-ink-600">{new Date(v.scheduled_for).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })} · {v.assignee?.full_name?.split(" ")[0] ?? "no observer"}</span>
+                        <span className="block font-mono text-[12px] text-ink-600">{fmtTime(v.scheduled_for)} · {v.assignee?.full_name?.split(" ")[0] ?? "no observer"}</span>
                         <Badge tone={v.status === "accepted" ? "green" : v.status === "invited" ? "amber" : v.submitted_at ? "brand" : "neutral"}>{v.submitted_at ? (v.release_status === "released" ? "Released" : "Filed") : STATUS_LABEL[v.status] ?? v.status}</Badge>
                       </Link>
                     ))}

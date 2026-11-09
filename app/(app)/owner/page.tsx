@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getMe } from "@/lib/session";
 import { db } from "@/lib/supabase";
 import { Badge, Card, CardTitle, Empty, LinkButton, PageHeader, ScoreBar, Stat, TierBadge, cx, tierColor } from "@/components/ui";
-import { SignalGrid } from "@/components/performance";
+import { SignalGrid, noAppData } from "@/components/performance";
 import { signalLevels } from "@/lib/person";
 import { Icon } from "@/components/icons";
 import { SEGMENT, STEP, TIER, currentPeriod, fmtDate, fmtDateTime, num, periodLabel, visitLabel } from "@/lib/format";
@@ -81,7 +81,7 @@ export default async function OwnerHome() {
             };
             return (
               <Card key={c.id}>
-                <CardTitle icon="layers" sub={`${c.classrooms.length} classrooms on the same content · live signals and QA side by side`} right={<Link href={`/cohorts/${c.id}`} className="text-[13px] font-medium text-brand">Open cohort →</Link>}>{c.name}</CardTitle>
+                <CardTitle icon="layers" sub={`${c.classrooms.length} ${c.classrooms.length === 1 ? "classroom" : "classrooms on the same content"} · live signals and QA side by side`} right={<Link href={`/cohorts/${c.id}`} className="text-[13px] font-medium text-brand">Open cohort →</Link>}>{c.name}</CardTitle>
                 <div className="mb-5 grid gap-2 sm:grid-cols-3">
                   {c.classrooms.sort((a: any, b: any) => (a.name > b.name ? 1 : -1)).map((cl: any) => {
                     const q = qa(cl);
@@ -92,7 +92,7 @@ export default async function OwnerHome() {
                         <div className="text-[13.5px] font-semibold text-navy">{cl.name}</div>
                         <div className="text-[12px] text-ink-500">{cl.classroom_staff.find((x: any) => x.role === "instructor")?.person.full_name}</div>
                         <div className="mt-2 flex items-baseline justify-between"><span className="text-[12px] text-ink-500">Class QA</span><span className="tabular-nums font-semibold" style={{ color: tierColor(q) }}>{num(q)}</span></div>
-                        <div className="flex items-baseline justify-between"><span className="text-[12px] text-ink-500">App alerts</span><span className={cx("tabular-nums font-semibold", alerts ? "text-tier4" : "text-tier1")}>{alerts}</span></div>
+                        <div className="flex items-baseline justify-between"><span className="text-[12px] text-ink-500">App alerts</span>{s && noAppData(s) ? <span className="text-[12px] text-ink-500">No App data yet</span> : <span className={cx("tabular-nums font-semibold", alerts ? "text-tier4" : "text-tier1")}>{alerts}</span>}</div>
                       </div>
                     );
                   })}
@@ -132,7 +132,7 @@ export default async function OwnerHome() {
             <CardTitle icon="layers" sub="A cohort starts only when content is locked and every classroom is cleared">Cohorts in setup</CardTitle>
             {setup.length === 0 ? <Empty title="No cohorts in setup" /> : setup.slice(0, SHOW).map((c: any) => (
               <Link key={c.id} href={`/cohorts/${c.id}`} className="mb-2 flex items-center justify-between rounded-lg border border-line p-3 hover:bg-canvas">
-                <span><span className="block text-[14px] font-semibold text-navy">{c.name}</span><span className="text-[12.5px] text-ink-500">Starts {fmtDate(c.start_date)} · {c.classrooms.length} classrooms</span></span>
+                <span><span className="block text-[14px] font-semibold text-navy">{c.name}</span><span className="text-[12.5px] text-ink-500">Starts {fmtDate(c.start_date)} · {c.classrooms.length} {c.classrooms.length === 1 ? "classroom" : "classrooms"}</span></span>
                 <Badge tone="amber">Setup</Badge>
               </Link>
             ))}

@@ -91,7 +91,7 @@ export default async function EducationHome() {
                 <Link key={c.id} href={`/cohorts/${c.id}`} className="block rounded-lg border border-line p-3 transition hover:border-navy">
                   <div className="flex items-center justify-between text-[14px]"><b className="text-navy">{c.name}</b><span className="tabular-nums text-ink-500">{done}/{qa.length} QA visits</span></div>
                   <div className="mt-2 h-2 overflow-hidden bg-canvas"><div className="h-full bg-navy" style={{ width: `${pct}%` }} /></div>
-                  <div className="mt-1.5 text-[12.5px] text-ink-500">{c.classrooms.length} classrooms · {(c.visits as any[]).filter((v) => v.kind === "shadowing" && v.submitted_at).length} shadowing visits filed</div>
+                  <div className="mt-1.5 text-[12.5px] text-ink-500">{c.classrooms.length} {c.classrooms.length === 1 ? "classroom" : "classrooms"} · {(c.visits as any[]).filter((v) => v.kind === "shadowing" && v.submitted_at).length} shadowing visits filed</div>
                 </Link>
               );
             })}
@@ -110,7 +110,7 @@ export default async function EducationHome() {
                 <li key={s.id}><Link href={`/approvals/content/${s.content.id}`} className="flex items-center justify-between rounded-lg border border-line px-3 py-2 text-[13.5px] hover:border-navy"><span><Icon name="layers" className="mr-1.5 inline h-3.5 w-3.5 text-brand" />{s.content.title}</span><span className="text-[12px] capitalize text-ink-500">{s.stage.replace("_", " ")}</span></Link></li>
               ))}
               {eduSteps.map(({ p, cur }) => (
-                <li key={p.id}><Link href={`/approvals/people/${p.id}`} className="flex items-center justify-between rounded-lg border border-line px-3 py-2 text-[13.5px] hover:border-navy"><span className="flex items-center gap-2"><Avatar name={p.person.full_name} size={22} />{p.person.full_name}</span><span className="text-[12px] text-ink-500">{cur.step.replace(/(\d)/, " $1")}{cur.opened_at ? ` · ${ago(cur.opened_at)}{lateLabel(cur.opened_at) && <b className="ml-1.5 text-tier4">· {lateLabel(cur.opened_at)}</b>}` : ""}</span></Link></li>
+                <li key={p.id}><Link href={`/approvals/people/${p.id}`} className="flex items-center justify-between rounded-lg border border-line px-3 py-2 text-[13.5px] hover:border-navy"><span className="flex items-center gap-2"><Avatar name={p.person.full_name} size={22} />{p.person.full_name}</span><span className="text-[12px] text-ink-500">{cur.step.replace(/(\d)/, " $1")}{cur.opened_at ? ` · ${ago(cur.opened_at)}` : ""}{cur.opened_at && lateLabel(cur.opened_at) && <b className="ml-1.5 text-tier4">· {lateLabel(cur.opened_at)}</b>}</span></Link></li>
               ))}
               {eduSteps.length + mineStages.length + (has(me, "education_principal") ? pendingContent.data?.length ?? 0 : 0) === 0 && <Empty title="Nothing waiting on Education" icon="check" />}
             </ul>
