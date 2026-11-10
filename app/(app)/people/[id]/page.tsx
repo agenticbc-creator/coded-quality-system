@@ -21,12 +21,13 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
   const d = await loadPerson(id);
   if (!d.person) notFound();
   const supabase = await db();
-  const [{ data: notes }, { data: scores }, v, { data: focusVisits }] = await Promise.all([
+  const [{ data: notes }, { data: scores }, v, { data: focusVisits }, { data: allowed }] = await Promise.all([
     supabase.from("feedback").select("*, author:people!feedback_author_id_fkey(full_name), cohort:cohorts(name)").eq("subject_id", id).order("created_at", { ascending: false }),
     supabase.from("visit_scores").select("*, visit:visits(kind, qa_type, mode, week_no, submitted_at, release_status, cohort:cohorts(name))").eq("subject_person_id", id),
     schemaVersion(),
     // Visits that focus on this person: RLS shows them to owners, the Education Principal and the observer only.
     supabase.from("visits").select("id, kind, qa_type, mode, status, scheduled_for, submitted_at, assignee_id, cohort:cohorts(name)").eq("focus_person_id", id).neq("status", "cancelled").order("scheduled_for", { ascending: false }),
+    supabase.rpc("can_see_scores", { p: id }),
   ]);
   const canSeeScores = Boolean(d.current) || d.composites.length > 0;
   const isOwner = has(me, "segment_owner");
@@ -46,7 +47,9 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
         sub="Everything below is filtered by your role. Private notes stay with the segment owner and the Education Principal."
         actions={canSeeScores ? <LinkButton href={`/report-card?person=${id}`} variant="secondary" icon="printer">Report card</LinkButton> : undefined} />
       {canSeeScores ? <Hero d={d} self={false} /> : (
-        <Card><Empty icon="lock" title="Scores are not visible to your role" sub="Evaluations stay with the segment, Operations and HR on specific elements (decided 25 Oct 2026)." /></Card>
+        allowed
+          ? <Card><Empty icon="chart" title="No score yet" sub="A score appears once released QA visits, reviews and App signals add up for a quarter." /></Card>
+          : <Card><Empty icon="lock" title="Scores are not visible to your role" sub="Evaluations stay with the segment, Operations and HR on specific elements (decided 25 Oct 2026)." /></Card>
       )}
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
         <div className="space-y-6">

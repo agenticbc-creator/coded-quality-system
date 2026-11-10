@@ -145,8 +145,20 @@ export function Signals({ d }: { d: PersonData }) {
   );
 }
 
+export function noAppData(data: any) {
+  return !!data && data.attendance_on_time == null && data.trainee_attendance == null && data.completion_this_week == null
+    && data.missed_pct == null && !data.pulse && !(data.late_attendance?.length) && !Number(data.ungraded_backlog ?? 0);
+}
+
 export function SignalGrid({ title, data, role, levels, draft = true }: { title: string; data: any; role?: string; levels?: SignalLevels | null; draft?: boolean }) {
   if (!data) return null;
+  // No sessions, attendance or tasks from the CODED App yet: say so instead of showing an empty "on track".
+  if (noAppData(data)) return (
+    <div>
+      <div className="mb-2 text-[13.5px] font-semibold text-navy">{title}</div>
+      <p className="rounded-lg border border-line bg-white p-3 text-[13px] text-ink-500">No CODED App data for this classroom yet. Signals appear once its sessions, attendance and tasks come in.</p>
+    </div>
+  );
   const a = data.alerts ?? {};
   // Three levels instead of "any miss is red": on track (quiet), watch (amber), act now (red).
   // "Act now" levels come from settings.signal_thresholds (migration 0010); the numbers below are the fallback examples.

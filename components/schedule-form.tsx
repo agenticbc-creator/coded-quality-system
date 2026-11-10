@@ -6,13 +6,13 @@ import { visitSchedule } from "@/app/actions";
 import { Field, cx, input } from "./ui";
 
 type Cohort = { id: string; name: string; classrooms: { id: string; name: string; staff: { id: string; name: string; role: string }[] }[]; overseers: { id: string; name: string }[] };
-type Person = { id: string; name: string; roles: string[]; full_timer: boolean; unavailable: { from: string; to: string }[] };
+type Person = { id: string; name: string; roles: string[]; full_timer: boolean; signed_in: boolean; unavailable: { from: string; to: string }[] };
 type Template = { id: string; name: string; kind: string; focus: string; special: boolean; status: string };
 
 export function ScheduleForm({ cohorts, people, templates, initial }: { cohorts: Cohort[]; people: Person[]; templates: Template[]; initial?: any }) {
   const [cohort, setCohort] = useState<string>(initial?.cohort_id ?? cohorts[0]?.id ?? "");
   const [classroom, setClassroom] = useState<string>(initial?.classroom_id ?? "");
-  const [kind, setKind] = useState<string>(initial ? (initial.kind === "shadowing" ? "shadowing" : initial.qa_type) : "education");
+  const [kind, setKind] = useState<string>(initial?.kind ? (initial.kind === "shadowing" ? "shadowing" : initial.qa_type) : "education");
   const [mode, setMode] = useState<string>(initial?.mode ?? "planned");
   const [focus, setFocus] = useState<string>(initial?.focus ?? "class");
   const [date, setDate] = useState<string>(initial?.date ?? "");
@@ -24,7 +24,7 @@ export function ScheduleForm({ cohorts, people, templates, initial }: { cohorts:
     if (kind === "operations") return p.roles.includes("operations");
     if (kind === "education") return p.full_timer && p.roles.some((r) => ["education_officer", "senior_instructor", "education_principal"].includes(r));
     return !(cl?.staff ?? []).some((x) => x.id === p.id); // shadowing: anyone authorized, but not someone teaching this class
-  }), [people, kind, cl]);
+  }).sort((a, b) => Number(b.signed_in) - Number(a.signed_in)), [people, kind, cl]);  // people who can sign in first
   const busy = (p: Person) => date && p.unavailable.some((u) => date >= u.from && date <= u.to);
 
   return (
@@ -93,8 +93,14 @@ export function ScheduleForm({ cohorts, people, templates, initial }: { cohorts:
         <Field label="Observer" hint={kind === "education" ? "CODED-internal, educational background" : kind === "operations" ? "Operations QAers" : "A cleared instructor or staff member who does not teach this class"}>
           <select name="assignee" defaultValue={initial?.assignee_id ?? ""} className={input} required>
             <option value="" disabled>Pick a person</option>
-            {eligible.map((p) => <option key={p.id} value={p.id} disabled={!!busy(p)}>{p.name}{busy(p) ? " — unavailable" : ""}</option>)}
+            {eligible.map((p) => <option key={p.id} value={p.id} disabled={!!busy(p)}>{p.name}{busy(p) ? " — unavailable" : !p.signed_in ? " — no sign-in yet" : ""}</option>)}
           </select>
+          {eligible.length === 0 && (
+            <span className="mt-1 block text-[12px] text-tier3">
+              {kind === "operations" ? "Nobody has the Operations role yet." : kind === "education" ? "No full-time Education Officer, Senior Instructor or Education Principal yet." : "No cleared instructor is free to observe this class."}
+              {kind !== "shadowing" && " The system owner gives roles under System → Roles and access."}
+            </span>
+          )}
         </Field>
         <Field label="Date"><input type="date" name="date" required value={date} onChange={(e) => setDate(e.target.value)} className={input} /></Field>
         <Field label="Time (Kuwait)"><input type="time" name="time" required defaultValue={initial?.time ?? "09:30"} className={input} /></Field>

@@ -52,7 +52,7 @@ export default async function PeopleApprovals() {
                   <Avatar name={p.person.full_name} />
                   <div>
                     <div className="text-[14.5px] font-semibold text-navy">{p.person.full_name}</div>
-                    <div className="text-[12.5px] text-ink-500">{p.target_role === "ta" ? "TA" : "Instructor"} · {SEGMENT[p.segment_id]}{p.program ? ` · ${p.program.name}` : ""} · ERPNext {p.person.erp_contractor_status}</div>
+                    <div className="text-[12.5px] text-ink-500">{p.target_role === "ta" ? "TA" : "Instructor"} · {SEGMENT[p.segment_id]}{p.program ? ` · ${p.program.name}` : ""}{p.person.erp_contractor_status ? ` · ERPNext ${p.person.erp_contractor_status}` : ""}</div>
                   </div>
                 </div>
                 <div className="text-right">

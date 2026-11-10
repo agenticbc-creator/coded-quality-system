@@ -7,7 +7,8 @@ import { STATUS_LABEL, fmtDateTime, num, visitLabel } from "@/lib/format";
 
 export const metadata = { title: "Visits" };
 
-export default async function Visits() {
+export default async function Visits({ searchParams }: { searchParams: Promise<{ all?: string }> }) {
+  const showAll = (await searchParams).all === "1";
   const me = await getMe();
   const supabase = await db();
   const { data } = await supabase.from("visits")
@@ -17,6 +18,9 @@ export default async function Visits() {
   const mineOpen = all.filter((v) => v.assignee_id === me.id && !v.submitted_at && v.status !== "cancelled");
   const others = all.filter((v) => !(v.assignee_id === me.id && !v.submitted_at));
   const needs = others.filter((v) => v.status === "planned" && !v.assignee_id && v.cohort?.status !== "closed");
+  // The next three weeks first; the rest of the term behind "Show all".
+  const horizon = Date.now() + 21 * 864e5;
+  const needsShown = showAll ? needs : needs.filter((v) => !v.scheduled_for || new Date(v.scheduled_for).getTime() <= horizon);
   const where = (v: any) => [v.cohort?.name, v.classroom?.name].filter(Boolean).join(" · ");
   const upcoming = others.filter((v) => ["invited", "accepted", "planned"].includes(v.status) && v.assignee_id && !v.submitted_at);
   const done = others.filter((v) => v.submitted_at).sort((a, b) => (a.submitted_at < b.submitted_at ? 1 : -1));
@@ -56,11 +60,14 @@ export default async function Visits() {
           <h2 className="mb-3 text-[13.5px] font-semibold uppercase tracking-wider text-tier3">Needs an observer · {needs.length}</h2>
           <Card pad={false} className="px-5 pb-1 pt-3">
             <Table head={["Visit", "Cohort", "Focus", "When", ""]}>
-              {needs.map((v) => (
+              {needsShown.map((v) => (
                 <tr key={v.id}><td className={td}><Link href={`/visits/${v.id}`} className="font-medium text-navy hover:text-brand">{visitLabel(v)}</Link>{v.week_no ? <span className="text-ink-500"> · week {v.week_no}</span> : ""}</td><td className={td}>{where(v)}</td><td className={td}>{v.focus_person?.full_name ?? "Whole class"}</td><td className={td}>{fmtDateTime(v.scheduled_for)}</td>
                   <td className={cx(td, "text-right")}>{canSchedule && <Link href={`/visits/new?visit=${v.id}`} className="font-medium text-brand">Assign →</Link>}</td></tr>
               ))}
             </Table>
+            {needs.length > needsShown.length && (
+              <p className="py-3 text-[13px] text-ink-500">{needs.length - needsShown.length} more after the next three weeks · <Link href="/visits?all=1" className="font-medium text-brand">Show all</Link></p>
+            )}
           </Card>
         </section>
       )}

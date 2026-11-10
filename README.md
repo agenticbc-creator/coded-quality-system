@@ -83,7 +83,7 @@ Demo mode is off unless `DEMO_MODE=on` and `DEMO_PASSWORD` are both set in Verce
 
 
 Do these in order. Steps 1, 5, 6 and 7 are settings only the project owner can change; the SQL steps run in the
-Supabase SQL editor of project `dceyqaobmasqibclchdg`.
+Supabase SQL editor of project `excvjpgpyriqcjnvdjuh`.
 
 1. **Agree where real data lives.** This standalone Supabase project will hold real names, emails, scores and private
    feedback notes. CODED should agree to that (hosting region eu-central-1, who has dashboard access, backups) or move to Portal v2 first.
@@ -106,6 +106,12 @@ Supabase SQL editor of project `dceyqaobmasqibclchdg`.
    the `staffing_rules` setting says `{"require_active_contract": true}` (turn it on once contracts are imported).
    On a person's record, the segment owner can *Clear to teach* someone CODED already hired (the reason is logged),
    and the system owner can give an imported record its sign-in email and send the invite, so the first sign-in links to it.
+10. **Migration 0014 (QA plans keep bookings), then `supabase/live/3_generate_qa_plans.sql`:** before 0014, *Generate QA plan*
+    deleted every planned visit of the cohort, including shadowing booked by hand, and booked at 10:00 on fixed weekdays
+    (Friday and Saturday included). With 0014 it keeps hand-booked visits and skips their weeks, books on the cohort's teaching
+    days at its class time (timetable first, then the weekdays and time of its booked visits, then Sunday to Thursday 10:00),
+    spreads visits over different days, and never books in the past. The script then generates every live and setup cohort's
+    plan as you (put your sign-in email on its first line). **Do not press Generate QA plan on any cohort before 0014 is in.**
 
 Rehearsed end to end on a throwaway database by `npm run test:db` (`supabase/tests/live.sql`).
 
